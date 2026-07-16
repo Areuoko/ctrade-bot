@@ -1,6 +1,89 @@
 # Traceability matrix
 
-| Rule ID | Specification section | Production file/symbol | Verification | Status |
-|---|---|---|---|---|
+> Maps every specification Rule ID to its source section, future production location, verification method, and current status.
+> Statuses: Proposed · Approved · Implemented · Verified · Blocked.
 
-Statuses: Proposed, Approved, Implemented, Verified, Blocked.
+| Rule ID | Specification section | Source section | Production file/symbol | Verification | Status |
+|---|---|---|---|---|---|
+| A.1 | SYMBOL_DISABLED | §2 | Domain/SymbolValidator | Unit test | Proposed |
+| B.1 | InternalTimeUTC | §3.1 | Infrastructure/Clock | Unit test | Proposed |
+| B.2 | EntryWindow | §3.2 | Domain/TradingWindow | Unit test | Proposed |
+| B.3 | FridayCutoff | §3.3 | Domain/TradingWindow | Unit test | Proposed |
+| B.4 | FridayCloseAll | §3.3 | Domain/TradingWindow | Unit test | Proposed |
+| B.5 | RolloverBlackout | §3.3 | Domain/TradingWindow | Unit test | Proposed |
+| C.1 | DataQualityGate | §4 | Domain/DataValidator | Unit test | Proposed |
+| C.2 | WarmupMinimum | §4 | Domain/DataValidator | Unit test | Proposed |
+| D.1 | ClosePriceBasis | §5 | Domain/Indicators | Unit test | Proposed |
+| D.2 | H1_Indicators | §5 | Domain/Indicators | Unit test | Proposed |
+| D.3 | M15_Indicators | §5 | Domain/Indicators | Unit test | Proposed |
+| E.1 | TrendBuy | §6.1 | Domain/TrendFilter | Unit test | Proposed |
+| E.2 | TrendSell | §6.2 | Domain/TrendFilter | Unit test | Proposed |
+| E.3 | TrendNeutral | §6 | Domain/TrendFilter | Unit test | Proposed |
+| F.1 | VolatilityRatio | §7 | Domain/RegimeFilter | Unit test | Proposed |
+| F.2 | VolatilityBand | §7 | Domain/RegimeFilter | Unit test | Proposed |
+| G.1 | SignalDefinitions | §8 | Domain/SignalEngine | Unit test | Proposed |
+| G.2 | BuySignal | §8.1 | Domain/SignalEngine | Unit test | Proposed |
+| G.3 | SellSignal | §8.2 | Domain/SignalEngine | Unit test | Proposed |
+| H.1 | VolumeBaseline | §9 | Domain/VolumeFilter | Unit test | Proposed |
+| H.2 | VolumeFilter | §9 | Domain/VolumeFilter | Unit test | Proposed |
+| I.1 | SpreadBaseline | §10 | Domain/SpreadFilter | Unit test | Proposed |
+| I.2 | SpreadFilter | §10 | Domain/SpreadFilter | Unit test | Proposed |
+| I.3 | SpreadTriggerCancel | §10 | Domain/SpreadFilter | Unit test | Proposed |
+| J.1 | ConfirmedSwingLow | §11.1 | Domain/SwingDetector | Unit test | Proposed |
+| J.2 | ConfirmedSwingHigh | §11.1 | Domain/SwingDetector | Unit test | Proposed |
+| J.3 | SelectSwing | §11.2 | Domain/SwingDetector | Unit test | Proposed |
+| J.4 | StopLossLevel | §11.3 | Domain/RiskCalculator | Unit test | Proposed |
+| J.5 | StopDistanceBounds | §11.3 | Domain/RiskCalculator | Unit test | Proposed |
+| J.6 | StopBrokerLimits | §11.3 | Infrastructure/Execution | Unit test | Proposed |
+| K.1 | EntryPrice | §12.1 | Domain/OrderBuilder | Unit test | Proposed |
+| K.2 | OrderExpiry | §12.2 | Domain/OrderBuilder | Unit test | Proposed |
+| K.3 | PreTriggerValidation | §12.3 | Domain/PendingManager | Unit test | Proposed |
+| K.4 | TriggerDistanceCheck | §12.3 | Domain/PendingManager | Unit test | Proposed |
+| K.5 | SlippageControl | §12.4 | Domain/RiskCalculator | Unit test | Proposed |
+| L.1 | TradeRiskMoney | §13 | Domain/PositionSizer | Unit test | Proposed |
+| L.2 | RawVolume | §13 | Domain/PositionSizer | Unit test | Proposed |
+| L.3 | VolumeRounding | §13 | Domain/PositionSizer | Unit test | Proposed |
+| L.4 | MarginCheck | §13 | Infrastructure/Execution | Unit test | Proposed |
+| L.5 | PostRoundingRisk | §13 | Domain/PositionSizer | Unit test | Proposed |
+| M.1 | TakeProfit | §14.1 | Domain/PositionManager | Unit test | Proposed |
+| M.2 | BreakEvenDisabled | §14.2 | Domain/PositionManager | Unit test | Proposed |
+| M.3 | TimeExit | §14.3 | Domain/PositionManager | Unit test | Proposed |
+| M.4 | OppositeSignalNoClose | §14.4 | Domain/PositionManager | Unit test | Proposed |
+| N.1 | NewsCalendarSource | §15.1 | Domain/NewsFilter | Unit test | Proposed |
+| N.2 | LevelANews | §15.2 | Domain/NewsFilter | Unit test | Proposed |
+| N.3 | NewsProhibitedWindow | §15.3 | Domain/NewsFilter | Unit test | Proposed |
+| N.4 | PendingCancelPreNews | §15.3 | Domain/NewsFilter | Unit test | Proposed |
+| N.5 | ClosePreNews | §15.3 | Domain/NewsFilter | Unit test | Proposed |
+| O.1 | RiskPerTrade | §16.1 | Domain/RiskManager | Unit test | Proposed |
+| O.2 | MaxReservedRisk | §16.1 | Domain/RiskManager | Unit test | Proposed |
+| O.3 | MetalBasket | §16.2 | Domain/RiskManager | Unit test | Proposed |
+| O.4 | USDDirectionalExposure | §16.3 | Domain/RiskManager | Unit test | Proposed |
+| P.1 | DayDefinition | §17.1 | Domain/DrawdownTracker | Unit test | Proposed |
+| P.2 | DailyDrawdown | §17 | Domain/DrawdownTracker | Unit test | Proposed |
+| P.3 | WeeklyDrawdown | §17 | Domain/DrawdownTracker | Unit test | Proposed |
+| P.4 | MaxDailyEntries | §17 | Domain/DrawdownTracker | Unit test | Proposed |
+| P.5 | ConsecutiveLoss | §17.2 | Domain/DrawdownTracker | Unit test | Proposed |
+| P.6 | KillSwitch | §17.3 | Domain/KillSwitch | Unit test | Proposed |
+| Q.1 | DisconnectBehavior | §18 | Domain/Reconciler | Unit test | Proposed |
+| Q.2 | StateMismatch | §18 | Domain/Reconciler | Unit test | Proposed |
+| R.1 | States | §19 | Domain/StateMachine | Unit test | Proposed |
+| R.2 | Transitions | §19 | Domain/StateMachine | Unit test | Proposed |
+| R.3 | SinglePositionPerSymbol | §19 | Domain/StateMachine | Unit test | Proposed |
+| S.1 | CandleCloseSequence | §20 | Application/Orchestration | Integration test | Proposed |
+| S.2 | ReasonCodes | §20 | Domain/ReasonCode | Unit test | Proposed |
+| T.1 | BacktestDataRequirements | §21.1 | Backtest/ | Integration test | Proposed |
+| T.2 | BacktestCosts | §21.2 | Backtest/ | Integration test | Proposed |
+| T.3 | SLTPConflictResolution | §21.3 | Backtest/ | Unit test | Proposed |
+| U.1 | WalkForwardProtocol | §22 | Backtest/WalkForward | Integration test | Proposed |
+| V.1 | MonteCarloProtocol | §23 | Backtest/MonteCarlo | Integration test | Proposed |
+| V.2 | MonteCarloOutputs | §23 | Backtest/MonteCarlo | Unit test | Proposed |
+| W.1 | AcceptanceTable | §24 | Backtest/Reports | Integration test | Proposed |
+| W.2 | SharpeDefinition | §24 | Backtest/Reports | Unit test | Proposed |
+| W.3 | RobustnessChecks | §24 | Backtest/Reports | Integration test | Proposed |
+| X.1 | AblationComparisons | §25 | Backtest/Ablation | Integration test | Proposed |
+| Y.1 | PilotPhases | §26 | N/A (process) | Checklist | Proposed |
+| Y.2 | NoRiskIncreaseOnProfit | §26 | N/A (process) | Checklist | Proposed |
+| Z.1 | PerCandleLog | §27 | Domain/Logger | Unit test | Proposed |
+| Z.2 | WeeklyReport | §27 | Domain/Logger | Integration test | Proposed |
+| AA.1 | FixedParameters | §29 | N/A (classification) | Audit | Proposed |
+| AA.2 | ResearchParameters | §29 | N/A (classification) | Audit | Proposed |
