@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "uUjfsGjc5oQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\CleanPullM15Pro.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Sweet\\.nuget\\packages\\ctrader.automate\\1.0.17\\ctrader.automate.1.0.17.nupkg.sha512",
+    "C:\\Users\\Sweet\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.36\\microsoft.netcore.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\Sweet\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.36\\microsoft.windowsdesktop.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\Sweet\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.36\\microsoft.aspnetcore.app.ref.6.0.36.nupkg.sha512"
+  ],
+  "logs": []
+}

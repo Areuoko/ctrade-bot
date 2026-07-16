@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>CleanPullM15Pro</RootNamespace>
+    <AssemblyName>CleanPullM15Pro</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Relocate .algo to artifacts/release with correct name.
+       cTrader.Automate derives the filename from the parent directory ("src"),
+       producing "src.algo". This target runs after _BundleAlgo to fix it. -->
+  <Target Name="CopyAlgoToRelease" AfterTargets="_BundleAlgo" BeforeTargets="_CopyToSources">
+    <Copy SourceFiles="$(_AlgoFilePath)"
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\artifacts\release"
+          OverwriteReadOnlyFiles="True"
+          SkipUnchangedFiles="False" />
+    <Move SourceFiles="$(MSBuildProjectDirectory)\..\..\artifacts\release\$(_AlgoFileName)"
+          DestinationFiles="$(MSBuildProjectDirectory)\..\..\artifacts\release\CleanPullM15Pro.algo"
+          OverwriteReadOnlyFiles="True" />
+    <Message Importance="High"
+             Text="CleanPullM15Pro -> artifacts\release\CleanPullM15Pro.algo" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="cTrader.Automate" Version="1.0.17" />
+  </ItemGroup>
+
+</Project>
