@@ -275,6 +275,94 @@
         <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Sell">
             <summary>Sell (short) direction.</summary>
         </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator">
+            <summary>
+            News window calculations. Rules N.2, N.3.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.IsLevelA(System.String)">
+            <summary>
+            N.2 — Determines if a news event is Level A (high impact).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.GetRelevantCurrencies(System.String)">
+            <summary>
+            N.2 — Maps a symbol to its relevant news currencies.
+            EURUSD → EUR+USD; XAUUSD → USD; XAGUSD → USD.
+            Returns null if no mapping exists.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.ComputeProhibitedWindow(System.DateTime,System.Boolean)">
+            <summary>
+            N.3 — Computes the prohibited trading window around a Level A news event.
+            Returns (windowStart, windowEnd).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.IsInProhibitedWindow(System.DateTime,System.DateTime,System.Boolean)">
+            <summary>
+            N.3 — Checks if a given time falls within the prohibited window.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator">
+            <summary>
+            Order entry calculations. Rules K.1, K.2, K.4.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeBuyEntry(System.Double,System.Double,System.Double)">
+            <summary>
+            K.1 — Computes buy stop entry price.
+            Buffer = max(TickSize, 0.02 × ATR14[1]); Entry = round_up(High[1] + Buffer).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeSellEntry(System.Double,System.Double,System.Double)">
+            <summary>
+            K.1 — Computes sell stop entry price.
+            Buffer = max(TickSize, 0.02 × ATR14[1]); Entry = round_down(Low[1] − Buffer).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeExpiry(System.DateTime)">
+            <summary>
+            K.2 — Order expiry = signal close time + 30 minutes.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.PassesTriggerDistance(System.Double,System.Double,System.Double)">
+            <summary>
+            K.4 — Trigger distance check.
+            Returns true if |ExpectedFillPrice − EMA20_current| &lt;= 0.60 × ATR14_current.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.RoundUpToTick(System.Double,System.Double)">
+            <summary>
+            Rounds price up to the nearest tick size.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.RoundDownToTick(System.Double,System.Double)">
+            <summary>
+            Rounds price down to the nearest tick size.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator">
+            <summary>
+            Trade management calculations. Rules M.1, M.3.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator.ComputeTakeProfit(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double)">
+            <summary>
+            M.1 — Take-profit level.
+            R = |FillPrice − InitialSL|; Buy: TP = FillPrice + 2R; Sell: TP = FillPrice − 2R.
+            TP is rounded to tick size.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator.IsTimeExitTriggered(System.Int32)">
+            <summary>
+            M.3 — Time exit check.
+            Returns true if 32 M15 candles have elapsed since entry.
+            Caller passes the number of completed M15 candles since entry open.
+            </summary>
+        </member>
         <member name="T:CleanPullM15Pro.Domain.Risk.DrawdownGuard">
             <summary>
             Drawdown and kill-switch guards. Rules P.1–P.6.
