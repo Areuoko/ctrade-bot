@@ -4,6 +4,258 @@
         <name>CleanPullM15Pro</name>
     </assembly>
     <members>
+        <member name="T:CleanPullM15Pro.Domain.Market.BotState">
+            <summary>
+            Per-symbol bot state. Rule R.1.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Disabled">
+            <summary>Bot disabled for this symbol.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Ready">
+            <summary>Ready to evaluate signals.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.SignalFound">
+            <summary>Signal found, pending risk and execution checks.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.OrderPending">
+            <summary>Order submitted to broker, awaiting confirmation.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.PositionOpen">
+            <summary>Position open and managed by broker.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Cooldown">
+            <summary>Position closed, waiting for next M15 candle.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.ReconciliationRequired">
+            <summary>State mismatch with broker detected.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.Candle">
+            <summary>
+            Single OHLCV candle. Rule G.1 input.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.TimestampUtc">
+            <summary>Candle open timestamp in UTC.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Open">
+            <summary>Open price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.High">
+            <summary>High price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Low">
+            <summary>Low price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Close">
+            <summary>Close price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.TickVolume">
+            <summary>Tick volume for this candle.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Range">
+            <summary>
+            Range = High − Low. Rule G.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Body">
+            <summary>
+            Body = |Close − Open|. Rule G.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Clv">
+            <summary>
+            CLV = (Close − Low) / Range. Rule G.1.
+            Returns 0 when Range is zero.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.ReasonCode">
+            <summary>
+            Stable rejection and event codes. Rule S.2.
+            Every rejection must use one of these codes.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDataInvalid">
+            <summary>Data quality check failed.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectWarmup">
+            <summary>Insufficient warmup candles.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectOutsideWindow">
+            <summary>Outside allowed trading window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectFridayCutoff">
+            <summary>Friday cutoff reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectRollover">
+            <summary>Within rollover blackout window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.TrendNeutral">
+            <summary>H1 trend neutral — no buy or sell.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectLowVol">
+            <summary>Volatility ratio below minimum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectHighVol">
+            <summary>Volatility ratio above maximum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSignalInvalid">
+            <summary>Signal candle definition invalid (Range ≤ 0).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolumeBaseline">
+            <summary>Volume baseline uncomputable.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolume">
+            <summary>Tick volume below threshold.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSpreadBaseline">
+            <summary>Spread baseline uncomputable.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSpread">
+            <summary>Spread exceeds allowed cap.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNoSwing">
+            <summary>No confirmed swing found in lookback window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopTooWide">
+            <summary>Stop loss distance exceeds maximum ATR.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopTooNarrow">
+            <summary>Stop loss distance below minimum ATR.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopLevel">
+            <summary>Stop loss violates broker StopLevel/FreezeLevel.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectTriggerDistance">
+            <summary>Trigger-time distance check failed.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSlippage">
+            <summary>Slippage exceeds allowed maximum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolumeInvalid">
+            <summary>Raw volume calculation invalid (LossPerLotAtSL ≤ 0).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBelowMinLot">
+            <summary>Rounded volume below minimum lot.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectInsufficientMargin">
+            <summary>Insufficient free margin.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectRiskExceeded">
+            <summary>Post-rounding risk exceeds per-trade cap.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectCorrelatedRisk">
+            <summary>Metal basket risk limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectUsdExposure">
+            <summary>USD directional exposure limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectReservedRisk">
+            <summary>Total reserved risk limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDailyLock">
+            <summary>Daily drawdown lock triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectWeeklyLock">
+            <summary>Weekly drawdown lock triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDailyEntries">
+            <summary>Maximum daily entries reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectConsecutiveLoss">
+            <summary>Consecutive loss limit reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.KillSwitch">
+            <summary>Kill switch activated.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNewsCalendar">
+            <summary>News calendar unavailable or stale.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNewsWindow">
+            <summary>Within prohibited news window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.SymbolDisabled">
+            <summary>Symbol metadata invalid or missing.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDuplicateOrder">
+            <summary>Duplicate order on same symbol.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.ReconciliationRequired">
+            <summary>State mismatch with broker.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.Expired">
+            <summary>Order expired before fill.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.TimeExit">
+            <summary>Time-based exit triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.FridayForceClose">
+            <summary>Friday force-close of all positions.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.CancelledNews">
+            <summary>Pending order cancelled before news.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.ClosedPreNews">
+            <summary>Position closed before news window.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.SymbolInfo">
+            <summary>
+            Symbol metadata required at startup. Rule A.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.SymbolName">
+            <summary>Symbol name as provided by broker.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.TickSize">
+            <summary>Minimum price increment.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.TickValue">
+            <summary>Value of one tick in account currency.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.Point">
+            <summary>Point value (price unit).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.ContractSize">
+            <summary>Contract size for lot calculation.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.MinLot">
+            <summary>Minimum allowed lot size.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.MaxLot">
+            <summary>Maximum allowed lot size.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.LotStep">
+            <summary>Lot size increment step.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.StopLevel">
+            <summary>Minimum stop distance from current price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.FreezeLevel">
+            <summary>Minimum distance from current price for order modification.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.Commission">
+            <summary>Commission per lot (estimated).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.IsValid">
+            <summary>
+            Validates that all required fields are present and positive where required.
+            Rule A.1: any missing or invalid field → symbol disabled.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.TradeDirection">
+            <summary>
+            Trade direction. None means no position or signal.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.None">
+            <summary>No position or signal.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Buy">
+            <summary>Buy (long) direction.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Sell">
+            <summary>Sell (short) direction.</summary>
+        </member>
         <member name="T:CleanPullM15Pro.Host.CleanPullM15ProBot">
             <summary>
             Minimal cBot lifecycle adapter. No trading logic implemented.

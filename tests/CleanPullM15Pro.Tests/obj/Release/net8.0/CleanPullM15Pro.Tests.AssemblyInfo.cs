@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CleanPullM15Pro.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aa99a16de5aa7ef701d305c6d3452a5482678c7e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b34280327b070123a87ed669a14705b890d30fde")]
 [assembly: System.Reflection.AssemblyProductAttribute("CleanPullM15Pro.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CleanPullM15Pro.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
