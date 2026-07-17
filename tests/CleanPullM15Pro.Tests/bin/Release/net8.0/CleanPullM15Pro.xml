@@ -4,6 +4,25 @@
         <name>CleanPullM15Pro</name>
     </assembly>
     <members>
+        <member name="T:CleanPullM15Pro.Application.Ports.IMarketDataPort">
+            <summary>
+            Port for reading market candle data. Implemented by Infrastructure/CTrader.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IMarketDataPort.GetClosedBars(System.Int32,System.Int32)">
+            <summary>
+            Returns the last N fully closed candles for the given timeframe.
+            Candle at index 0 is the most recent closed candle ([1] in specification terms).
+            </summary>
+            <param name="timeframeMinutes">Timeframe in minutes (15 for M15, 60 for H1).</param>
+            <param name="count">Number of candles to return.</param>
+            <returns>Ordered list from newest to oldest. Empty if data unavailable.</returns>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Ports.IMarketDataPort.ServerTimeUtc">
+            <summary>
+            Returns the current server time in UTC.
+            </summary>
+        </member>
         <member name="T:CleanPullM15Pro.Domain.Market.BotState">
             <summary>
             Per-symbol bot state. Rule R.1.
