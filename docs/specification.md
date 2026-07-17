@@ -176,7 +176,7 @@
 - **Error:** Any input missing/NaN → neutral
 - **ReasonCode:** N/A (neutral is not rejection)
 - **Source:** §6.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### E.2 — TrendSell
 
@@ -188,7 +188,7 @@
 - **Error:** Any input missing/NaN → neutral
 - **ReasonCode:** N/A
 - **Source:** §6.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### E.3 — TrendNeutral
 
@@ -200,7 +200,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A (blocks new order by design)
 - **Source:** §6
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -216,7 +216,7 @@
 - **Error:** Denominator zero or NaN → no order
 - **ReasonCode:** `REJECT_DATA_INVALID`
 - **Source:** §7
-- **Status:** Proposed
+- **Status:** Approved
 
 ### F.2 — VolatilityBand
 
@@ -228,7 +228,7 @@
 - **Error:** N/A
 - **ReasonCode:** `REJECT_LOW_VOL` or `REJECT_HIGH_VOL`
 - **Source:** §7
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -244,7 +244,7 @@
 - **Error:** `Range <= 0` → signal invalid
 - **ReasonCode:** `REJECT_SIGNAL_INVALID`
 - **Source:** §8
-- **Status:** Proposed
+- **Status:** Approved
 
 ### G.2 — BuySignal
 
@@ -266,7 +266,7 @@
 - **Error:** Any input missing/NaN → FALSE (no order)
 - **ReasonCode:** First failed condition code (see §20 list)
 - **Source:** §8.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### G.3 — SellSignal
 
@@ -288,7 +288,7 @@
 - **Error:** Any input missing/NaN → FALSE (no order)
 - **ReasonCode:** First failed condition code
 - **Source:** §8.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 

@@ -275,6 +275,56 @@
         <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Sell">
             <summary>Sell (short) direction.</summary>
         </member>
+        <member name="T:CleanPullM15Pro.Domain.Signals.SignalEvaluator">
+            <summary>
+            Pure domain evaluator for H1 trend, M15 volatility band, and M15 signal conditions.
+            Rules E.1–E.3, F.1–F.2, G.1–G.3.
+            No state; no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateH1Trend(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            E.1/E.2/E.3 — Evaluate H1 trend direction from closed-bar indicators.
+            Returns Buy, Sell, or None (neutral). NaN or non-positive ATR → neutral.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateVolatilityBand(System.Double,System.Double)">
+            <summary>
+            F.1/F.2 — Evaluate M15 volatility band.
+            Ratio in [0.70, 1.80] → proceed. Otherwise → rejection.
+            Denominator zero or NaN → REJECT_DATA_INVALID.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateBuySignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            G.2 — Evaluate M15 buy signal. All 10 conditions must pass.
+            Returns first failing condition as rejection.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateSellSignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            G.3 — Evaluate M15 sell signal. All 10 conditions must pass.
+            Returns first failing condition as rejection.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Signals.SignalResult">
+            <summary>
+            Signal evaluation outcome. Direction = None means no signal; ReasonCode explains why.
+            Consumed by SignalEvaluator and downstream application layer.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Signals.SignalResult.Direction">
+            <summary>Signal direction. None = no signal.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Signals.SignalResult.RejectionReason">
+            <summary>Rejection code. None when signal is valid.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalResult.Of(CleanPullM15Pro.Domain.Market.TradeDirection)">
+            <summary>Creates a valid signal result.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalResult.Rejected(CleanPullM15Pro.Domain.Market.ReasonCode)">
+            <summary>Creates a rejection result (Direction = None).</summary>
+        </member>
         <member name="T:CleanPullM15Pro.Host.CleanPullM15ProBot">
             <summary>
             Minimal cBot lifecycle adapter. No trading logic implemented.
