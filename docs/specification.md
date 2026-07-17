@@ -304,7 +304,7 @@
 - **Error:** Days without complete data excluded; minimum 15 valid observations required; if baseline uncomputable → no order
 - **ReasonCode:** `REJECT_VOLUME_BASELINE`
 - **Source:** §9
-- **Status:** Proposed
+- **Status:** Approved
 
 ### H.2 — VolumeFilter
 
@@ -316,7 +316,7 @@
 - **Error:** Baseline uncomputable → no order
 - **ReasonCode:** `REJECT_VOLUME`
 - **Source:** §9
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -332,7 +332,7 @@
 - **Error:** N/A (baseline must be computable)
 - **ReasonCode:** `REJECT_SPREAD_BASELINE`
 - **Source:** §10
-- **Status:** Proposed
+- **Status:** Approved
 
 ### I.2 — SpreadFilter
 
@@ -344,7 +344,7 @@
 - **Error:** Baseline uncomputable → no order; cap undefined → no real trading
 - **ReasonCode:** `REJECT_SPREAD`
 - **Source:** §10
-- **Status:** Proposed
+- **Status:** Approved
 
 ### I.3 — SpreadTriggerCancel
 
@@ -356,7 +356,7 @@
 - **Error:** N/A
 - **ReasonCode:** `REJECT_SPREAD`
 - **Source:** §10
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -372,7 +372,7 @@
 - **Error:** Look-ahead forbidden; only confirmed swings
 - **ReasonCode:** N/A
 - **Source:** §11.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### J.2 — ConfirmedSwingHigh
 
@@ -384,7 +384,7 @@
 - **Error:** Look-ahead forbidden
 - **ReasonCode:** N/A
 - **Source:** §11.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### J.3 — SelectSwing
 
@@ -396,7 +396,7 @@
 - **Error:** No valid swing found → reject
 - **ReasonCode:** `REJECT_NO_SWING`
 - **Source:** §11.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### J.4 — StopLossLevel
 
@@ -408,7 +408,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §11.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### J.5 — StopDistanceBounds
 
@@ -423,7 +423,7 @@
 - **Error:** Out of bounds → reject; SL not shifted to fit
 - **ReasonCode:** `REJECT_STOP_TOO_WIDE` or `REJECT_STOP_TOO_NARROW`
 - **Source:** §11.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### J.6 — StopBrokerLimits
 
@@ -435,7 +435,7 @@
 - **Error:** Violation → reject
 - **ReasonCode:** `REJECT_STOP_LEVEL`
 - **Source:** §11.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -451,7 +451,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §12.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### K.2 — OrderExpiry
 
@@ -463,7 +463,7 @@
 - **Error:** N/A
 - **ReasonCode:** `EXPIRED`
 - **Source:** §12.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### K.3 — PreTriggerValidation
 
@@ -475,7 +475,7 @@
 - **Error:** N/A
 - **ReasonCode:** Specific per condition
 - **Source:** §12.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### K.4 — TriggerDistanceCheck
 
@@ -487,7 +487,7 @@
 - **Error:** N/A
 - **ReasonCode:** `REJECT_TRIGGER_DISTANCE`
 - **Source:** §12.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### K.5 — SlippageControl
 
@@ -499,7 +499,7 @@
 - **Error:** N/A
 - **ReasonCode:** `REJECT_SLIPPAGE`
 - **Source:** §12.4
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -515,7 +515,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §13
-- **Status:** Proposed
+- **Status:** Approved
 
 ### L.2 — RawVolume
 
@@ -527,7 +527,7 @@
 - **Error:** `LossPerLotAtSL <= 0` → reject
 - **ReasonCode:** `REJECT_VOLUME_INVALID`
 - **Source:** §13
-- **Status:** Proposed
+- **Status:** Approved
 
 ### L.3 — VolumeRounding
 
@@ -539,7 +539,7 @@
 - **Error:** Rounded volume < MinLot → reject
 - **ReasonCode:** `REJECT_BELOW_MIN_LOT`
 - **Source:** §13
-- **Status:** Proposed
+- **Status:** Approved
 
 ### L.4 — MarginCheck
 
@@ -551,7 +551,7 @@
 - **Error:** Insufficient → reject
 - **ReasonCode:** `REJECT_INSUFFICIENT_MARGIN`
 - **Source:** §13
-- **Status:** Proposed
+- **Status:** Approved
 
 ### L.5 — PostRoundingRisk
 
@@ -563,7 +563,7 @@
 - **Error:** Exceeds cap → reject
 - **ReasonCode:** `REJECT_RISK_EXCEEDED`
 - **Source:** §13
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -579,7 +579,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §14.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### M.2 — BreakEvenDisabled
 
@@ -591,7 +591,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §14.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### M.3 — TimeExit
 
@@ -603,7 +603,7 @@
 - **Error:** N/A
 - **ReasonCode:** `TIME_EXIT`
 - **Source:** §14.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### M.4 — OppositeSignalNoClose
 
@@ -615,7 +615,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §14.4
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -631,7 +631,7 @@
 - **Error:** Calendar unavailable/stale/invalid → no new order
 - **ReasonCode:** `REJECT_NEWS_CALENDAR`
 - **Source:** §15.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### N.2 — LevelANews
 
@@ -643,7 +643,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §15.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### N.3 — NewsProhibitedWindow
 
@@ -657,7 +657,7 @@
 - **Error:** Within window → no new order
 - **ReasonCode:** `REJECT_NEWS_WINDOW`
 - **Source:** §15.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### N.4 — PendingCancelPreNews
 
@@ -669,7 +669,7 @@
 - **Error:** N/A
 - **ReasonCode:** `CANCELLED_NEWS`
 - **Source:** §15.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ### N.5 — ClosePreNews
 
@@ -681,7 +681,7 @@
 - **Error:** N/A
 - **ReasonCode:** `CLOSED_PRE_NEWS`
 - **Source:** §15.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -697,7 +697,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §16.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### O.2 — MaxReservedRisk
 
@@ -709,7 +709,7 @@
 - **Error:** Exceeds cap → reject new order
 - **ReasonCode:** `REJECT_RESERVED_RISK`
 - **Source:** §16.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### O.3 — MetalBasket
 
@@ -721,7 +721,7 @@
 - **Error:** Exceeds cap → reduce or reject
 - **ReasonCode:** `REJECT_CORRELATED_RISK`
 - **Source:** §16.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### O.4 — USDDirectionalExposure
 
@@ -733,7 +733,7 @@
 - **Error:** Exceeds cap → reduce or reject
 - **ReasonCode:** `REJECT_USD_EXPOSURE`
 - **Source:** §16.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -749,7 +749,7 @@
 - **Error:** N/A
 - **ReasonCode:** N/A
 - **Source:** §17.1
-- **Status:** Proposed
+- **Status:** Approved
 
 ### P.2 — DailyDrawdown
 
@@ -761,7 +761,7 @@
 - **Error:** >= 1.00% → stop entries until next day
 - **ReasonCode:** `REJECT_DAILY_LOCK`
 - **Source:** §17
-- **Status:** Proposed
+- **Status:** Approved
 
 ### P.3 — WeeklyDrawdown
 
@@ -773,7 +773,7 @@
 - **Error:** >= 3.00% → stop entries until next week
 - **ReasonCode:** `REJECT_WEEKLY_LOCK`
 - **Source:** §17
-- **Status:** Proposed
+- **Status:** Approved
 
 ### P.4 — MaxDailyEntries
 
@@ -785,7 +785,7 @@
 - **Error:** > 3 → stop entries until next day
 - **ReasonCode:** `REJECT_DAILY_ENTRIES`
 - **Source:** §17
-- **Status:** Proposed
+- **Status:** Approved
 
 ### P.5 — ConsecutiveLoss
 
@@ -797,7 +797,7 @@
 - **Error:** >= 3 consecutive → lock
 - **ReasonCode:** `REJECT_CONSECUTIVE_LOSS`
 - **Source:** §17.2
-- **Status:** Proposed
+- **Status:** Approved
 
 ### P.6 — KillSwitch
 
@@ -809,7 +809,7 @@
 - **Error:** On activation: (1) cancel all pending, (2) disable new orders, (3) existing positions managed by broker SL/TP, (4) immediate alert, (5) reactivation only by manual review + two-step command, (6) HWM not reset without manual confirmation
 - **ReasonCode:** `KILL_SWITCH`
 - **Source:** §17.3
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 
@@ -825,7 +825,7 @@
 - **Error:** N/A
 - **ReasonCode:** `RECONCILIATION_REQUIRED`
 - **Source:** §18
-- **Status:** Proposed
+- **Status:** Approved
 
 ### Q.2 — StateMismatch
 
@@ -837,7 +837,7 @@
 - **Error:** Any mismatch → RECONCILIATION_REQUIRED
 - **ReasonCode:** `RECONCILIATION_REQUIRED`
 - **Source:** §18
-- **Status:** Proposed
+- **Status:** Approved
 
 ---
 

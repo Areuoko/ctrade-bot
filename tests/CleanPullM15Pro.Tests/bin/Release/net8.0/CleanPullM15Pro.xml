@@ -275,6 +275,171 @@
         <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Sell">
             <summary>Sell (short) direction.</summary>
         </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.DrawdownGuard">
+            <summary>
+            Drawdown and kill-switch guards. Rules P.1–P.6.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateDailyDrawdown(System.Double,System.Double)">
+            <summary>
+            P.2 — Daily drawdown check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateWeeklyDrawdown(System.Double,System.Double)">
+            <summary>
+            P.3 — Weekly drawdown check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateDailyEntries(System.Int32)">
+            <summary>
+            P.4 — Max daily entries check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateConsecutiveLoss(System.Int32)">
+            <summary>
+            P.5 — Consecutive loss check.
+            lossCount: number of consecutive losses (result &lt; −0.05R).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.IsKillSwitchTriggered(System.Double,System.Double)">
+            <summary>
+            P.6 — Kill switch (total drawdown from equity high-water mark).
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard">
+            <summary>
+            Portfolio risk guards. Rules O.1–O.4.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.RiskPerTrade(System.Double)">
+            <summary>
+            O.1 — Per-trade risk cap.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.PassesReservedRisk(System.Double,System.Double)">
+            <summary>
+            O.2 — Total reserved risk check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.ValidateMetalBasket(System.Double,System.Double,System.Double)">
+            <summary>
+            O.3 — Metal basket risk check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.ValidateUsdExposure(System.Double,System.Double)">
+            <summary>
+            O.4 — USD directional exposure check.
+            sameDirectionRisk = sum of risks in the same USD direction.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.PositionSizer">
+            <summary>
+            Position sizing. Rules L.1–L.5.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeTradeRiskMoney(System.Double)">
+            <summary>
+            L.1 — Trade risk money = Equity × 0.30%.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeRawVolume(System.Double,System.Double)">
+            <summary>
+            L.2 — Raw volume = TradeRiskMoney / LossPerLotAtSL.
+            Returns (volume, rejection). Null volume means rejection.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.RoundVolume(System.Double,System.Double,System.Double)">
+            <summary>
+            L.3 — Rounds volume down to LotStep. Returns (rounded, rejection).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.PassesMarginCheck(System.Double,System.Double)">
+            <summary>
+            L.4 — Margin check. Returns true if free margin is sufficient.
+            Caller must compute required margin externally.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ValidatePostRoundingRisk(System.Double,System.Double,System.Double)">
+            <summary>
+            L.5 — Post-rounding risk check.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.SpreadFilter">
+            <summary>
+            Spread filter. Rules I.1, I.2, I.3.
+            Baseline must be computed externally (infrastructure).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.Passes(System.Double,System.Double,System.Double)">
+            <summary>
+            I.2 — Checks spread against baseline and absolute cap.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.StopLossCalculator">
+            <summary>
+            Stop-loss calculation and validation. Rules J.4, J.5, J.6.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ComputeLevel(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double)">
+            <summary>
+            J.4 — Computes raw SL level before broker validation.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateDistance(System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            J.5 — Validates stop distance in ATR multiples against symbol bounds.
+            Returns null if valid, or the appropriate rejection ReasonCode.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateBrokerLimits(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double,System.Double,System.Boolean)">
+            <summary>
+            J.6 — Validates SL against broker StopLevel and FreezeLevel.
+            For buy: SL must be below current bid minus StopLevel.
+            For sell: SL must be above current ask plus StopLevel.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.SwingDetector">
+            <summary>
+            Swing detection. Rules J.1, J.2, J.3.
+            Pure domain logic on closed M15 candles.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.IsConfirmedSwingLow(CleanPullM15Pro.Domain.Market.Candle[],System.Int32)">
+            <summary>
+            J.1 — Confirmed swing low at index k.
+            Requires candles[k-2]..candles[k+2] to exist (all closed).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.IsConfirmedSwingHigh(CleanPullM15Pro.Domain.Market.Candle[],System.Int32)">
+            <summary>
+            J.2 — Confirmed swing high at index k.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.SelectSwing(CleanPullM15Pro.Domain.Market.Candle[],CleanPullM15Pro.Domain.Market.TradeDirection,System.Int32)">
+            <summary>
+            J.3 — Selects the latest confirmed swing within lookback.
+            Buy → swing low; Sell → swing high.
+            candles[0] is most recent closed candle.
+            Returns (found, price).
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.VolumeFilter">
+            <summary>
+            Volume filter. Rules H.1, H.2.
+            Baseline must be computed externally (infrastructure).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.IsBaselineValid(System.Int32)">
+            <summary>
+            H.1 — Validates that the baseline has enough observations.
+            Caller must provide pre-computed median baseline.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.Passes(System.Int64,System.Double)">
+            <summary>
+            H.2 — Compares tick volume against baseline.
+            </summary>
+        </member>
         <member name="T:CleanPullM15Pro.Domain.Signals.SignalEvaluator">
             <summary>
             Pure domain evaluator for H1 trend, M15 volatility band, and M15 signal conditions.
