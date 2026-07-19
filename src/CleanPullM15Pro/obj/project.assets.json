@@ -85,11 +85,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\CleanPullM15Pro.csproj",
+      "projectUniqueName": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\CleanPullM15Pro.csproj",
       "projectName": "CleanPullM15Pro",
-      "projectPath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\CleanPullM15Pro.csproj",
+      "projectPath": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\CleanPullM15Pro.csproj",
       "packagesPath": "C:\\Users\\Sweet\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\obj\\",
+      "outputPath": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\src\\CleanPullM15Pro\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Sweet\\AppData\\Roaming\\NuGet\\NuGet.Config"

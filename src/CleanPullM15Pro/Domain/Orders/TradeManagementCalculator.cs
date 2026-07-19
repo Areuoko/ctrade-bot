@@ -21,13 +21,22 @@ public static class TradeManagementCalculator
         TradeDirection direction, double fillPrice, double initialSl, double tickSize)
     {
         double r = Math.Abs(fillPrice - initialSl);
-        double tp = direction == TradeDirection.Buy
-            ? fillPrice + TakeProfitRMultiple * r
-            : fillPrice - TakeProfitRMultiple * r;
 
+        // TP must round AWAY from entry (never toward it), so the realized
+        // R multiple is never smaller than 2R. Buy TP is above entry → round up.
+        // Sell TP is below entry → round down.
+        if (direction == TradeDirection.Buy)
+        {
+            double tpBuy = fillPrice + TakeProfitRMultiple * r;
+            return tickSize > 0
+                ? OrderEntryCalculator.RoundUpToTick(tpBuy, tickSize)
+                : tpBuy;
+        }
+
+        double tpSell = fillPrice - TakeProfitRMultiple * r;
         return tickSize > 0
-            ? OrderEntryCalculator.RoundUpToTick(tp, tickSize)
-            : tp;
+            ? OrderEntryCalculator.RoundDownToTick(tpSell, tickSize)
+            : tpSell;
     }
 
     /// <summary>

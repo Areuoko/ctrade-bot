@@ -17,6 +17,30 @@ public static class PositionSizer
         => equity * RiskPerTradePct;
 
     /// <summary>
+    /// L.2 dependency — Loss per lot if SL is hit, including a conservative estimate
+    /// of commission and slippage (Rule: "Commission برآوردی و یک Slippage
+    /// محافظه‌کارانه در LossPerLotAtSL لحاظ می‌شوند").
+    /// </summary>
+    /// <param name="entryPrice">Expected entry price.</param>
+    /// <param name="stopLoss">Computed stop-loss price.</param>
+    /// <param name="tickSize">Symbol tick size.</param>
+    /// <param name="tickValue">Money value of one tick, one lot.</param>
+    /// <param name="commissionPerLotRoundTurn">Estimated round-turn commission per lot.</param>
+    /// <param name="conservativeSlippagePriceUnits">Extra price distance to assume for slippage.</param>
+    public static double ComputeLossPerLotAtSL(
+        double entryPrice, double stopLoss, double tickSize, double tickValue,
+        double commissionPerLotRoundTurn, double conservativeSlippagePriceUnits)
+    {
+        if (tickSize <= 0 || tickValue <= 0)
+            return 0;
+
+        double priceDistance = System.Math.Abs(entryPrice - stopLoss) + System.Math.Max(0, conservativeSlippagePriceUnits);
+        double stopLossMoneyPerLot = (priceDistance / tickSize) * tickValue;
+
+        return stopLossMoneyPerLot + System.Math.Max(0, commissionPerLotRoundTurn);
+    }
+
+    /// <summary>
     /// L.2 — Raw volume = TradeRiskMoney / LossPerLotAtSL.
     /// Returns (volume, rejection). Null volume means rejection.
     /// </summary>

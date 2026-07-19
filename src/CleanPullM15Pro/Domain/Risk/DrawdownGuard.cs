@@ -51,7 +51,7 @@ public static class DrawdownGuard
     /// </summary>
     public static ReasonCode? ValidateDailyEntries(int filledEntriesToday)
     {
-        if (filledEntriesToday > MaxDailyEntries)
+        if (filledEntriesToday >= MaxDailyEntries)
             return ReasonCode.RejectDailyEntries;
 
         return null;

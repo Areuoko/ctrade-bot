@@ -33,6 +33,12 @@ public enum ReasonCode
     /// <summary>Signal candle definition invalid (Range ≤ 0).</summary>
     RejectSignalInvalid = 40,
 
+    /// <summary>ADX14[1] below minimum threshold (condition, not data error).</summary>
+    RejectAdxTooLow = 41,
+
+    /// <summary>RSI14 crossover condition not met (condition, not data error).</summary>
+    RejectRsiCondition = 42,
+
     /// <summary>Volume baseline uncomputable.</summary>
     RejectVolumeBaseline = 50,
 

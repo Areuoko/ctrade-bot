@@ -1053,11 +1053,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
+      "projectUniqueName": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
       "projectName": "CleanPullM15Pro.Tests",
-      "projectPath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
+      "projectPath": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
       "packagesPath": "C:\\Users\\Sweet\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\obj\\",
+      "outputPath": "c:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Sweet\\AppData\\Roaming\\NuGet\\NuGet.Config"

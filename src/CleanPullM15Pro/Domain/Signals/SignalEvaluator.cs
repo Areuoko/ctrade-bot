@@ -102,7 +102,7 @@ public static class SignalEvaluator
 
         // C3: ADX14[1] >= 20
         if (!(adx14Bar1 >= AdxMinimum))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectAdxTooLow);
 
         // C4: Low[1] <= EMA20[1] + 0.10 × ATR14[1]
         if (!(m15Candle.Low <= ema20Bar1 + PullbackUpperCoeff * atr14Bar1))
@@ -118,11 +118,11 @@ public static class SignalEvaluator
 
         // C7: RSI14[2] <= 50
         if (!(rsi14Bar2 <= RsiMidline))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectRsiCondition);
 
         // C8: RSI14[1] > 50
         if (!(rsi14Bar1 > RsiMidline))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectRsiCondition);
 
         // C9: CLV >= 0.65
         if (!(m15Candle.Clv >= ClvBuyThreshold))
@@ -166,7 +166,7 @@ public static class SignalEvaluator
 
         // C3: ADX14[1] >= 20
         if (!(adx14Bar1 >= AdxMinimum))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectAdxTooLow);
 
         // C4: High[1] >= EMA20[1] − 0.10 × ATR14[1]
         if (!(m15Candle.High >= ema20Bar1 - PullbackUpperCoeff * atr14Bar1))
@@ -182,11 +182,11 @@ public static class SignalEvaluator
 
         // C7: RSI14[2] >= 50
         if (!(rsi14Bar2 >= RsiMidline))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectRsiCondition);
 
         // C8: RSI14[1] < 50
         if (!(rsi14Bar1 < RsiMidline))
-            return SignalResult.Rejected(ReasonCode.RejectDataInvalid);
+            return SignalResult.Rejected(ReasonCode.RejectRsiCondition);
 
         // C9: CLV <= 0.35
         if (!(m15Candle.Clv <= ClvSellThreshold))

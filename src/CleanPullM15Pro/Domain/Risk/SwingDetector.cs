@@ -38,17 +38,21 @@ public static class SwingDetector
     }
 
     /// <summary>
-    /// J.3 — Selects the latest confirmed swing within lookback.
-    /// Buy → swing low; Sell → swing high.
-    /// candles[0] is most recent closed candle.
+    /// J.3 — Selects the latest (most recent) confirmed swing within lookback.
+    /// candles[0] is the signal candle ([1] in spec terms); candles[1..lookbackCount]
+    /// are the closed candles before it. Buy → swing low; Sell → swing high.
     /// Returns (found, price).
     /// </summary>
     public static (bool Found, double Price) SelectSwing(
         Candle[] candles, TradeDirection direction, int lookbackCount)
     {
-        // Search from most recent to oldest, leaving room for right-side confirmation
-        for (int k = lookbackCount - 3; k >= 2; k--)
+        // Search from most recent (k=2, the smallest valid index) toward oldest,
+        // so the FIRST match found is the newest confirmed swing. Rule J.3.
+        for (int k = 2; k <= lookbackCount; k++)
         {
+            if (k + 2 >= candles.Length)
+                break;
+
             if (direction == TradeDirection.Buy && IsConfirmedSwingLow(candles, k))
                 return (true, candles[k].Low);
 
