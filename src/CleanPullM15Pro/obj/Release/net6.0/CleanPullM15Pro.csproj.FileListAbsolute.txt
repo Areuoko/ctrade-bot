@@ -4,3 +4,11 @@ c:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\Clean
 c:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\CleanPullM15Pro.AssemblyInfo.cs
 c:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\CleanPullM15Pro.csproj.CoreCompileInputs.cache
 C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\CleanPullM15Pro.xml
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\bin\Release\net6.0\CleanPullM15Pro.deps.json
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\bin\Release\net6.0\CleanPullM15Pro.dll
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\bin\Release\net6.0\CleanPullM15Pro.pdb
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\bin\Release\net6.0\CleanPullM15Pro.xml
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\CleanPullM15Pro.dll
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\refint\CleanPullM15Pro.dll
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\CleanPullM15Pro.pdb
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\src\CleanPullM15Pro\obj\Release\net6.0\ref\CleanPullM15Pro.dll
