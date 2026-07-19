@@ -43,20 +43,13 @@ public static class StopLossCalculator
 
     /// <summary>
     /// J.6 — Validates SL against broker StopLevel and FreezeLevel.
-    /// For buy: SL must be below current bid minus StopLevel.
-    /// For sell: SL must be above current ask plus StopLevel.
+    /// For buy: SL must be at or below current bid minus StopLevel.
+    /// For sell: SL must be at or above current ask plus StopLevel.
     /// </summary>
     public static ReasonCode? ValidateBrokerLimits(
         TradeDirection direction, double sl, double currentPrice,
-        double stopLevel, double freezeLevel, bool hasOpenPosition)
+        double stopLevel)
     {
-        // FreezeLevel prevents modification of existing orders/positions
-        if (hasOpenPosition && freezeLevel > 0)
-        {
-            // Existing position SL modification blocked by freeze level
-            // This is checked but not the primary rejection here
-        }
-
         if (stopLevel <= 0)
             return null;
 

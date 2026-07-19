@@ -290,7 +290,7 @@
             <summary>
             N.2 — Maps a symbol to its relevant news currencies.
             EURUSD → EUR+USD; XAUUSD → USD; XAGUSD → USD.
-            Returns null if no mapping exists.
+            Returns empty array if no mapping exists.
             </summary>
         </member>
         <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.ComputeProhibitedWindow(System.DateTime,System.Boolean)">
@@ -479,11 +479,11 @@
             Returns null if valid, or the appropriate rejection ReasonCode.
             </summary>
         </member>
-        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateBrokerLimits(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double,System.Double,System.Boolean)">
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateBrokerLimits(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double)">
             <summary>
             J.6 — Validates SL against broker StopLevel and FreezeLevel.
-            For buy: SL must be below current bid minus StopLevel.
-            For sell: SL must be above current ask plus StopLevel.
+            For buy: SL must be at or below current bid minus StopLevel.
+            For sell: SL must be at or above current ask plus StopLevel.
             </summary>
         </member>
         <member name="T:CleanPullM15Pro.Domain.Risk.SwingDetector">

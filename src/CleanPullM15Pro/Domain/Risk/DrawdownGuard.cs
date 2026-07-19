@@ -1,4 +1,3 @@
-using System;
 using CleanPullM15Pro.Domain.Market;
 
 namespace CleanPullM15Pro.Domain.Risk;

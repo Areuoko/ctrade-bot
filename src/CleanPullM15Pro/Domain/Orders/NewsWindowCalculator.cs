@@ -35,7 +35,7 @@ public static class NewsWindowCalculator
     /// <summary>
     /// N.2 — Maps a symbol to its relevant news currencies.
     /// EURUSD → EUR+USD; XAUUSD → USD; XAGUSD → USD.
-    /// Returns null if no mapping exists.
+    /// Returns empty array if no mapping exists.
     /// </summary>
     public static string[] GetRelevantCurrencies(string symbolName)
     {
