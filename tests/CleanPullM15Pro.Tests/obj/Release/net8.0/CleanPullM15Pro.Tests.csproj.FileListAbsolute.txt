@@ -102,3 +102,4 @@ C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\tests\Cle
 C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\tests\CleanPullM15Pro.Tests\obj\Release\net8.0\CleanPullM15Pro.Tests.pdb
 C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\tests\CleanPullM15Pro.Tests\obj\Release\net8.0\CleanPullM15Pro.Tests.genruntimeconfig.cache
 C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\tests\CleanPullM15Pro.Tests\obj\Release\net8.0\ref\CleanPullM15Pro.Tests.dll
+C:\Users\Sweet\OneDrive\Documents\cAlgo\Sources\Robots\CleanPullM15Pro\tests\CleanPullM15Pro.Tests\obj\Release\net8.0\CleanPullM15Pro.Tests.sourcelink.json

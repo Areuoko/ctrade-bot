@@ -1,0 +1,1546 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CleanPullM15Pro</name>
+    </assembly>
+    <members>
+        <member name="T:CleanPullM15Pro.Application.Contracts.EvaluationOutcome">
+            <summary>
+            Result of one full bar-close evaluation cycle. Always produced, even on
+            rejection or "no signal" — spec section 27 requires every evaluated bar
+            to be logged.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.OrderSubmitted">
+            <summary>True if a pending order was submitted for this bar.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.Direction">
+            <summary>Trade direction evaluated/submitted for this bar.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.Reason">
+            <summary>Rejection reason code, if the evaluation was rejected.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.Details">
+            <summary>Human-readable details explaining the outcome.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.SubmittedOrder">
+            <summary>The submitted order, if one was placed; otherwise null.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.Rejected(CleanPullM15Pro.Domain.Market.ReasonCode,System.String)">
+            <summary>Builds a rejected evaluation outcome with the given reason and details.</summary>
+            <param name="reason">Reason code for the rejection.</param>
+            <param name="details">Optional human-readable rejection details.</param>
+            <returns>A rejected <see cref="T:CleanPullM15Pro.Application.Contracts.EvaluationOutcome"/>.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.NoSignal(System.String)">
+            <summary>Builds a "no signal" outcome when no setup was detected for the bar.</summary>
+            <param name="details">Optional human-readable details.</param>
+            <returns>A no-signal <see cref="T:CleanPullM15Pro.Application.Contracts.EvaluationOutcome"/>.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Contracts.EvaluationOutcome.Submitted(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Application.Contracts.PendingOrderRequest)">
+            <summary>Builds a submitted-order outcome for the given direction and order.</summary>
+            <param name="direction">Direction of the submitted order.</param>
+            <param name="order">The submitted pending-order request.</param>
+            <returns>A submitted <see cref="T:CleanPullM15Pro.Application.Contracts.EvaluationOutcome"/>.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.H1Snapshot">
+            <summary>
+            Everything the orchestrator needs from the H1 timeframe for one evaluation.
+            All values are pre-computed by Infrastructure from fully closed bars only.
+            Index convention matches spec: Bar1 = [1] (last closed), Bar6 = [6].
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.Ema50Bar1">
+            <summary>H1 EMA(50) evaluated at the last closed bar ([1]).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.Ema200Bar1">
+            <summary>H1 EMA(200) evaluated at the last closed bar ([1]).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.Ema50Bar6">
+            <summary>H1 EMA(50) evaluated at bar [6], for the slope/alignment trend filter.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.Atr14Bar1">
+            <summary>H1 ATR(14) evaluated at the last closed bar ([1]), used for volatility context.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.IsValid">
+            <summary>True if H1 data passed warm-up and quality checks (Rule D.*).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.M15Snapshot">
+            <summary>
+            Everything the orchestrator needs from the M15 timeframe for one evaluation.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Candles">
+            <summary>
+            Closed M15 candles, newest first. Index 0 = signal candle ([1] in spec).
+            Must contain at least enough history for swing lookback (20) + confirmation (2).
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Ema20Bar1">
+            <summary>M15 EMA(20) evaluated at the last closed bar ([1]).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Ema50Bar1">
+            <summary>M15 EMA(50) evaluated at the last closed bar ([1]).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Rsi14Bar1">
+            <summary>M15 RSI(14) evaluated at the last closed bar ([1]).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Rsi14Bar2">
+            <summary>M15 RSI(14) evaluated at bar [2], for pullback/turn confirmation.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Adx14Bar1">
+            <summary>M15 ADX(14) evaluated at the last closed bar ([1]), for trend strength.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Atr14Bar1">
+            <summary>M15 ATR(14) evaluated at the last closed bar ([1]), the sizing/reference ATR.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.SmaAtr100Bar1">
+            <summary>SMA(ATR14, 100) evaluated at [1], for the volatility ratio (Rule F.1).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Ema20Current">
+            <summary>Live (current, non-closed-bar) EMA20 for trigger-time distance check (Rule K.4).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.Atr14Current">
+            <summary>Live (current) ATR14 for trigger-time distance check (Rule K.4).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.IsValid">
+            <summary>True if M15 data passed warm-up and quality checks (Rule D.*).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot">
+            <summary>
+            Volume and spread baselines. Computed externally (Infrastructure) per Rules H.1, I.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.TickVolumeBar1">
+            <summary>Tick volume of the last closed bar ([1]), for the volume filter (Rule H.1).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.VolumeBaseline">
+            <summary>Baseline (e.g. median/SMA) tick volume used to gauge the current bar (Rule H.1).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.VolumeValidObservations">
+            <summary>Count of valid volume observations contributing to the baseline.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.CurrentSpread">
+            <summary>Current symbol spread in pips, for the spread filter (Rule I.1).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.SpreadBaseline">
+            <summary>Baseline spread used to gauge the current spread (Rule I.1).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.AbsoluteSpreadCap">
+            <summary>Absolute spread cap above which entries are rejected (Rule I.1).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.AccountSnapshot">
+            <summary>
+            Account-level figures needed for risk and sizing (Rules L.*, O.*, P.*).
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.Equity">
+            <summary>Current account equity.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.FreeMargin">
+            <summary>Free (available) margin at the moment of evaluation.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.Leverage">
+            <summary>Account leverage used in margin/risk checks.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.DailyStartEquity">
+            <summary>Equity recorded at the start of the trading day, for daily drawdown guard (Rule L.*).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.WeeklyStartEquity">
+            <summary>Equity recorded at the start of the trading week, for weekly drawdown guard (Rule L.*).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.EquityHighWaterMark">
+            <summary>High-water mark of equity, for trailing/profit lock checks.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.FilledEntriesToday">
+            <summary>Number of positions filled (entered) today, for the daily entry cap.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.ConsecutiveLossCount">
+            <summary>Consecutive loss count, for the loss-streak kill switch (Rule L.*).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.AccountSnapshot.TotalReservedRisk">
+            <summary>Total reserved (open) risk across all positions, for portfolio risk guard (Rule O.*).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.PendingOrderRequest">
+            <summary>
+            Fully computed pending-order request, ready to submit to the broker.
+            All prices/volume are already validated and rounded (Rules K.1–K.2, L.*).
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.SymbolName">
+            <summary>Target symbol name for the pending order.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.Direction">
+            <summary>Intended trade direction (long or short).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.EntryPrice">
+            <summary>Pending order entry (stop) price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.StopLoss">
+            <summary>Stop-loss price for the order.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.TakeProfit">
+            <summary>Take-profit price for the order.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.Volume">
+            <summary>Order volume (in lots/units).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.ExpiryUtc">
+            <summary>Order expiry time (UTC); the order is cancelled if unfilled by then.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.PendingOrderRequest.Label">
+            <summary>Order label used for traceability and broker tagging.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.OrderSubmitResult">
+            <summary>
+            Result of a broker submission attempt. Ambiguous broker responses must
+            NOT be treated as success (Rule: execution prompt, "در پاسخ مبهم Broker
+            سفارش موفق فرض نشود").
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.OrderSubmitResult.Success">
+            <summary>True if the broker accepted and registered the order.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.OrderSubmitResult.BrokerOrderId">
+            <summary>Broker-assigned order id when successfully submitted.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.OrderSubmitResult.ErrorDescription">
+            <summary>Description of the failure reason when submission failed.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Contracts.OrderSubmitResult.Ok(System.String)">
+            <summary>Builds a successful submission result carrying the broker order id.</summary>
+            <param name="brokerOrderId">Broker-assigned identifier for the submitted order.</param>
+            <returns>A successful <see cref="T:CleanPullM15Pro.Application.Contracts.OrderSubmitResult"/>.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Contracts.OrderSubmitResult.Fail(System.String)">
+            <summary>Builds a failed submission result carrying the error reason.</summary>
+            <param name="reason">Human-readable description of why submission failed.</param>
+            <returns>A failed <see cref="T:CleanPullM15Pro.Application.Contracts.OrderSubmitResult"/>.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Contracts.BrokerPositionState">
+            <summary>Snapshot of an existing pending order or open position on this symbol.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.HasPendingOrder">
+            <summary>True when a pending (unfilled) order exists for the symbol.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.HasOpenPosition">
+            <summary>True when an open (filled) position exists for the symbol.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.OrderOrPositionId">
+            <summary>Broker identifier for the pending order or open position, if any.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.Direction">
+            <summary>Direction of the existing order/position.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.Volume">
+            <summary>Volume of the existing order/position.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.StopLoss">
+            <summary>Current stop-loss of the existing order/position.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.TakeProfit">
+            <summary>Current take-profit of the existing order/position.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.BrokerPositionState.OpenTimeUtc">
+            <summary>Open time (UTC) of the position, if any.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig">
+            <summary>
+            Fixed configuration for one symbol's evaluation. Values come from spec
+            section 11.3 (per-symbol stop bounds) and account-level parameters.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.SymbolName">
+            <summary>Target symbol name for this evaluation configuration.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.MinStopAtr">
+            <summary>Minimum stop distance as a multiple of ATR14 (spec section 11.3).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.MaxStopAtr">
+            <summary>Maximum stop distance as a multiple of ATR14 (spec section 11.3).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.SwingLookbackCount">
+            <summary>Number of M15 bars to look back for confirmed swing selection.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.CommissionPerLotRoundTurn">
+            <summary>Round-turn commission per lot, included in the cost-adjusted risk.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.ConservativeSlippagePriceUnits">
+            <summary>Conservative (worst-case) slippage in price units, factored into loss-per-lot.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig.MaxAllowedSlippagePriceUnits">
+            <summary>Maximum slippage in price units allowed for the trade to proceed.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator">
+            <summary>
+            Orchestrates one full evaluation cycle on M15 bar close, following the
+            decision order in spec section 20. Steps 15 (basket/USD exposure) are
+            intentionally omitted — this build is scoped to a single symbol (EURUSD)
+            by explicit decision; re-add PortfolioRiskGuard calls before adding a
+            second correlated symbol.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator.#ctor(CleanPullM15Pro.Application.Ports.IExecutionPort,CleanPullM15Pro.Application.Ports.ISymbolPort,CleanPullM15Pro.Application.Ports.IClockPort,CleanPullM15Pro.Application.Ports.INewsCalendarPort,CleanPullM15Pro.Application.Ports.IStateStorePort,CleanPullM15Pro.Application.Ports.ILogPort,CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig,CleanPullM15Pro.Application.StateMachine.SymbolStateMachine)">
+            <summary>
+            Constructs the orchestrator with its execution, market, clock, news, state-store,
+            logging, per-symbol configuration, and state-machine dependencies.
+            </summary>
+            <param name="execution">Execution port used to query/submit/cancel broker orders.</param>
+            <param name="symbols">Symbol metadata and live-pricing port.</param>
+            <param name="clock">Time/session-window port.</param>
+            <param name="news">News-calendar port for prohibited-window checks.</param>
+            <param name="stateStore">Persistence port for bot state and daily/weekly counters.</param>
+            <param name="log">Structured logging port.</param>
+            <param name="config">Per-symbol configuration (stop bounds, costs, slippage).</param>
+            <param name="stateMachine">Symbol state machine tracking the current per-symbol lifecycle.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator.Evaluate(CleanPullM15Pro.Application.Contracts.H1Snapshot,CleanPullM15Pro.Application.Contracts.M15Snapshot,CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot,CleanPullM15Pro.Application.Contracts.AccountSnapshot,CleanPullM15Pro.Domain.Market.SymbolInfo,System.DateTime)">
+            <summary>
+            Runs one full M15 bar-close evaluation cycle in spec decision order (section 20):
+            validate data/clock → risk locks → state/window/news checks → H1 trend → M15
+            volatility → pullback signal → volume/spread → swing → entry/SL/TP → sizing →
+            submit → confirm. Always returns an outcome (submitted, no-signal, or rejected).
+            </summary>
+            <param name="h1">Pre-computed H1 snapshot from closed bars.</param>
+            <param name="m15">Pre-computed M15 snapshot, including closed candles.</param>
+            <param name="quality">Volume/spread baselines and current values.</param>
+            <param name="account">Account-level figures for risk and sizing.</param>
+            <param name="symbolInfo">Validated symbol metadata.</param>
+            <param name="barCloseTimeUtc">UTC time of the bar close being evaluated.</param>
+            <returns>The <see cref="T:CleanPullM15Pro.Application.Contracts.EvaluationOutcome"/> for this evaluation cycle.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator.EstimateRequiredMargin(System.Double,CleanPullM15Pro.Domain.Market.SymbolInfo,System.Double,System.Double)">
+            <summary>
+            Rough margin estimate for the pre-submit check (Rule L.4): notional / leverage.
+            This is a fallback only — Infrastructure should prefer the broker's own
+            margin calculation (cTrader exposes Symbol.GetEstimatedMargin) when available,
+            since real margin can depend on tiered leverage, hedging mode, etc.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.IClockPort">
+            <summary>
+            Port for time/session logic. All windows computed with IANA time zones
+            so DST is handled automatically (Rule B.1). Rules B.2, B.3.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Ports.IClockPort.UtcNow">
+            <summary>Current UTC time used for all session/window evaluations.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IClockPort.IsWithinEntryWindow(System.DateTime)">
+            <summary>
+            True if UtcNow falls inside one of the allowed entry windows
+            (London open 08:00–11:00 Europe/London, NY morning 08:30–11:30 America/New_York).
+            Rule B.2. Checked at order-activation time, not just signal time.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IClockPort.IsPastFridayNewOrderCutoff(System.DateTime)">
+            <summary>True from Friday 12:00 New York onward — no new orders. Rule B.3.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IClockPort.IsPastFridayForceCloseTime(System.DateTime)">
+            <summary>True at/after Friday 15:45 New York — force-close all trades. Rule B.3.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IClockPort.IsWithinRolloverWindow(System.DateTime)">
+            <summary>True if inside the broker rollover blackout window. Rule B.3.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IClockPort.IsClockReliable(System.DateTime,System.DateTime)">
+            <summary>Server time freshness/clock-skew check inputs (Rule D.1).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.IExecutionPort">
+            <summary>
+            Port for submitting and managing broker-side orders/positions.
+            Implemented by Infrastructure/CTrader. Rules K.*, M.*.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IExecutionPort.SubmitPendingOrder(CleanPullM15Pro.Application.Contracts.PendingOrderRequest)">
+            <summary>Submits a pending stop order with SL/TP/expiry attached at broker side.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IExecutionPort.CancelPendingOrder(System.String)">
+            <summary>Cancels a pending order by id. No-op if already gone.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IExecutionPort.CloseMarket(System.String)">
+            <summary>Closes an open position at market.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IExecutionPort.ModifyStops(System.String,System.Double,System.Double)">
+            <summary>Modifies SL/TP of an open position (e.g. Fill-based retargeting after slippage).</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IExecutionPort.GetBrokerState(System.String)">
+            <summary>Reads current broker-side state for this symbol (Rule S.9 reconciliation source).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.ILogPort">
+            <summary>
+            Structured logging port. Every evaluated bar must be logged, even with no signal
+            (Rule spec section 27). Implemented via cBot's Print/File logging in Infrastructure.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ILogPort.LogDecision(System.String,CleanPullM15Pro.Domain.Market.TradeDirection,System.Nullable{CleanPullM15Pro.Domain.Market.ReasonCode},System.String)">
+            <summary>Logs a per-bar decision outcome (submitted, no-signal, or rejected).</summary>
+            <param name="symbolName">Symbol being evaluated.</param>
+            <param name="direction">Trade direction for the decision.</param>
+            <param name="reason">Rejection reason code, if rejected; otherwise null.</param>
+            <param name="details">Human-readable details about the decision.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ILogPort.LogRejection(System.String,CleanPullM15Pro.Domain.Market.ReasonCode,System.String)">
+            <summary>Logs a rejection event with the given reason and details.</summary>
+            <param name="symbolName">Symbol being evaluated.</param>
+            <param name="reason">Rejection reason code.</param>
+            <param name="details">Human-readable rejection details.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ILogPort.LogError(System.String,System.String)">
+            <summary>Logs an error message for the given symbol.</summary>
+            <param name="symbolName">Symbol associated with the error.</param>
+            <param name="message">Human-readable error message.</param>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.IMarketDataPort">
+            <summary>
+            Port for reading market candle data. Implemented by Infrastructure/CTrader.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IMarketDataPort.GetClosedBars(System.Int32,System.Int32)">
+            <summary>
+            Returns the last N fully closed candles for the given timeframe.
+            Candle at index 0 is the most recent closed candle ([1] in specification terms).
+            </summary>
+            <param name="timeframeMinutes">Timeframe in minutes (15 for M15, 60 for H1).</param>
+            <param name="count">Number of candles to return.</param>
+            <returns>Ordered list from newest to oldest. Empty if data unavailable.</returns>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Ports.IMarketDataPort.ServerTimeUtc">
+            <summary>
+            Returns the current server time in UTC.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.INewsCalendarPort">
+            <summary>
+            Port for the economic news calendar. Rule N.*.
+            If the calendar is unavailable/stale, new entries must be blocked (fail closed).
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.Ports.INewsCalendarPort.IsAvailableAndFresh">
+            <summary>True if the calendar data is present and fresh enough to trust.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.INewsCalendarPort.IsInProhibitedWindow(System.String,System.DateTime)">
+            <summary>
+            True if checkTimeUtc falls inside a prohibited window for any Level-A event
+            relevant to the given symbol's currencies (Rule N.3).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.INewsCalendarPort.IsApproachingProhibitedWindow(System.String,System.DateTime,System.TimeSpan)">
+            <summary>
+            True if a relevant Level-A event's prohibited window starts within the next
+            15 minutes — used to pre-cancel pending orders / pre-close positions (Rule N.3).
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.IStateStorePort">
+            <summary>
+            Port for persisting state across restarts. Rule S.*, P.1.
+            Implemented via cBot's local/robot storage in Infrastructure.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetState(System.String)">
+            <summary>Loads the persisted bot state for the given symbol.</summary>
+            <param name="symbolName">Symbol whose state is being read.</param>
+            <returns>The persisted <see cref="T:CleanPullM15Pro.Domain.Market.BotState"/> for the symbol.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetState(System.String,CleanPullM15Pro.Domain.Market.BotState)">
+            <summary>Persists the bot state for the given symbol.</summary>
+            <param name="symbolName">Symbol whose state is being written.</param>
+            <param name="state">The state to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetDailyStartEquity">
+            <summary>Gets the equity recorded at the start of the trading day.</summary>
+            <returns>The daily-start equity value.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetDailyStartEquity(System.Double)">
+            <summary>Sets the equity recorded at the start of the trading day.</summary>
+            <param name="value">The daily-start equity value to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetWeeklyStartEquity">
+            <summary>Gets the equity recorded at the start of the trading week.</summary>
+            <returns>The weekly-start equity value.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetWeeklyStartEquity(System.Double)">
+            <summary>Sets the equity recorded at the start of the trading week.</summary>
+            <param name="value">The weekly-start equity value to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetEquityHighWaterMark">
+            <summary>Gets the high-water mark of equity.</summary>
+            <returns>The equity high-water-mark value.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetEquityHighWaterMark(System.Double)">
+            <summary>Sets the high-water mark of equity.</summary>
+            <param name="value">The equity high-water-mark value to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetFilledEntriesToday">
+            <summary>Gets the number of entries filled today.</summary>
+            <returns>The count of filled entries today.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetFilledEntriesToday(System.Int32)">
+            <summary>Sets the number of entries filled today.</summary>
+            <param name="value">The filled-entries-today count to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetConsecutiveLossCount">
+            <summary>Gets the current consecutive-loss count.</summary>
+            <returns>The consecutive loss count.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetConsecutiveLossCount(System.Int32)">
+            <summary>Sets the current consecutive-loss count.</summary>
+            <param name="value">The consecutive-loss count to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetKillSwitchActive">
+            <summary>Gets whether the kill switch is currently active.</summary>
+            <returns>True if the kill switch is active; otherwise false.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetKillSwitchActive(System.Boolean)">
+            <summary>Sets whether the kill switch is active.</summary>
+            <param name="value">The kill-switch state to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.GetLastCountersResetDate">
+            <summary>Last UTC date (yyyy-MM-dd, New York session date) counters were reset for.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.IStateStorePort.SetLastCountersResetDate(System.String)">
+            <summary>Sets the last UTC date the daily counters were reset for.</summary>
+            <param name="date">The date string (yyyy-MM-dd) to persist.</param>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.Ports.ISymbolPort">
+            <summary>
+            Port for symbol metadata and live pricing. Rule A.1.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ISymbolPort.GetSymbolInfo(System.String)">
+            <summary>Reads and validates symbol metadata. IsValid=false → SYMBOL_DISABLED (Rule A.1).</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ISymbolPort.CurrentBid(System.String)">
+            <summary>Current bid price for the given symbol.</summary>
+            <param name="symbolName">Symbol whose bid price is being queried.</param>
+            <returns>The current bid price.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.Ports.ISymbolPort.CurrentAsk(System.String)">
+            <summary>Current ask price for the given symbol.</summary>
+            <param name="symbolName">Symbol whose ask price is being queried.</param>
+            <returns>The current ask price.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Application.StateMachine.SymbolStateMachine">
+            <summary>
+            Enforces the state machine defined in spec section 19 / guide section 9.
+            Only documented transitions are allowed; anything else throws, which is
+            intentional — a hidden/unplanned transition is a bug, not a runtime case
+            to silently swallow.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Application.StateMachine.SymbolStateMachine.Current">
+            <summary>Current symbolic lifecycle state for the tracked symbol.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.StateMachine.SymbolStateMachine.#ctor(CleanPullM15Pro.Domain.Market.BotState)">
+            <summary>Constructs a state machine starting from the given initial state.</summary>
+            <param name="initial">Initial <see cref="T:CleanPullM15Pro.Domain.Market.BotState"/> for the symbol.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.StateMachine.SymbolStateMachine.CanTransitionTo(CleanPullM15Pro.Domain.Market.BotState)">
+            <summary>Determines whether a transition to <paramref name="target"/> is allowed by the spec.</summary>
+            <param name="target">Candidate target state.</param>
+            <returns>True if the transition is documented/allowed; otherwise false.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Application.StateMachine.SymbolStateMachine.TryTransition(CleanPullM15Pro.Domain.Market.BotState)">
+            <summary>
+            Attempts the transition. Returns false (no-op) if not allowed instead of throwing,
+            so orchestration can log a rejection rather than crash the bot on an edge case.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.BotState">
+            <summary>
+            Per-symbol bot state. Rule R.1.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Disabled">
+            <summary>Bot disabled for this symbol.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Ready">
+            <summary>Ready to evaluate signals.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.SignalFound">
+            <summary>Signal found, pending risk and execution checks.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.OrderPending">
+            <summary>Order submitted to broker, awaiting confirmation.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.PositionOpen">
+            <summary>Position open and managed by broker.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.Cooldown">
+            <summary>Position closed, waiting for next M15 candle.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.BotState.ReconciliationRequired">
+            <summary>State mismatch with broker detected.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.Candle">
+            <summary>
+            Single OHLCV candle. Rule G.1 input.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.TimestampUtc">
+            <summary>Candle open timestamp in UTC.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Open">
+            <summary>Open price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.High">
+            <summary>High price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Low">
+            <summary>Low price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Close">
+            <summary>Close price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.TickVolume">
+            <summary>Tick volume for this candle.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Range">
+            <summary>
+            Range = High − Low. Rule G.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Body">
+            <summary>
+            Body = |Close − Open|. Rule G.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.Candle.Clv">
+            <summary>
+            CLV = (Close − Low) / Range. Rule G.1.
+            Returns 0 when Range is zero.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.ReasonCode">
+            <summary>
+            Stable rejection and event codes. Rule S.2.
+            Every rejection must use one of these codes.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDataInvalid">
+            <summary>Data quality check failed.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectWarmup">
+            <summary>Insufficient warmup candles.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectOutsideWindow">
+            <summary>Outside allowed trading window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectFridayCutoff">
+            <summary>Friday cutoff reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectRollover">
+            <summary>Within rollover blackout window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.TrendNeutral">
+            <summary>H1 trend neutral — no buy or sell.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectLowVol">
+            <summary>Volatility ratio below minimum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectHighVol">
+            <summary>Volatility ratio above maximum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSignalInvalid">
+            <summary>Signal candle definition invalid (Range ≤ 0).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectAdxTooLow">
+            <summary>ADX14[1] below minimum threshold (condition, not data error).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectRsiCondition">
+            <summary>RSI14 crossover condition not met (condition, not data error).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolumeBaseline">
+            <summary>Volume baseline uncomputable.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolume">
+            <summary>Tick volume below threshold.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSpreadBaseline">
+            <summary>Spread baseline uncomputable.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSpread">
+            <summary>Spread exceeds allowed cap.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNoSwing">
+            <summary>No confirmed swing found in lookback window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopTooWide">
+            <summary>Stop loss distance exceeds maximum ATR.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopTooNarrow">
+            <summary>Stop loss distance below minimum ATR.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectStopLevel">
+            <summary>Stop loss violates broker StopLevel/FreezeLevel.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectTriggerDistance">
+            <summary>Trigger-time distance check failed.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectSlippage">
+            <summary>Slippage exceeds allowed maximum.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectVolumeInvalid">
+            <summary>Raw volume calculation invalid (LossPerLotAtSL ≤ 0).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBelowMinLot">
+            <summary>Rounded volume below minimum lot.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectInsufficientMargin">
+            <summary>Insufficient free margin.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectRiskExceeded">
+            <summary>Post-rounding risk exceeds per-trade cap.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectCorrelatedRisk">
+            <summary>Metal basket risk limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectUsdExposure">
+            <summary>USD directional exposure limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectReservedRisk">
+            <summary>Total reserved risk limit exceeded.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDailyLock">
+            <summary>Daily drawdown lock triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectWeeklyLock">
+            <summary>Weekly drawdown lock triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDailyEntries">
+            <summary>Maximum daily entries reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectConsecutiveLoss">
+            <summary>Consecutive loss limit reached.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.KillSwitch">
+            <summary>Kill switch activated.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNewsCalendar">
+            <summary>News calendar unavailable or stale.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectNewsWindow">
+            <summary>Within prohibited news window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.SymbolDisabled">
+            <summary>Symbol metadata invalid or missing.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectDuplicateOrder">
+            <summary>Duplicate order on same symbol.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.ReconciliationRequired">
+            <summary>State mismatch with broker.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.Expired">
+            <summary>Order expired before fill.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.TimeExit">
+            <summary>Time-based exit triggered.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.FridayForceClose">
+            <summary>Friday force-close of all positions.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.CancelledNews">
+            <summary>Pending order cancelled before news.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.ClosedPreNews">
+            <summary>Position closed before news window.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.SymbolInfo">
+            <summary>
+            Symbol metadata required at startup. Rule A.1.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.SymbolName">
+            <summary>Symbol name as provided by broker.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.TickSize">
+            <summary>Minimum price increment.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.TickValue">
+            <summary>Value of one tick in account currency.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.Point">
+            <summary>Point value (price unit).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.ContractSize">
+            <summary>Contract size for lot calculation.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.MinLot">
+            <summary>Minimum allowed lot size.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.MaxLot">
+            <summary>Maximum allowed lot size.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.LotStep">
+            <summary>Lot size increment step.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.StopLevel">
+            <summary>Minimum stop distance from current price.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.FreezeLevel">
+            <summary>Minimum distance from current price for order modification.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.Commission">
+            <summary>Commission per lot (estimated).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.IsValid">
+            <summary>
+            Validates that all required fields are present and positive where required.
+            Rule A.1: any missing or invalid field → symbol disabled.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Market.TradeDirection">
+            <summary>
+            Trade direction. None means no position or signal.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.None">
+            <summary>No position or signal.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Buy">
+            <summary>Buy (long) direction.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.TradeDirection.Sell">
+            <summary>Sell (short) direction.</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator">
+            <summary>
+            News window calculations. Rules N.2, N.3.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.IsLevelA(System.String)">
+            <summary>
+            N.2 — Determines if a news event is Level A (high impact).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.GetRelevantCurrencies(System.String)">
+            <summary>
+            N.2 — Maps a symbol to its relevant news currencies.
+            EURUSD → EUR+USD; XAUUSD → USD; XAGUSD → USD.
+            Returns empty array if no mapping exists.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.ComputeProhibitedWindow(System.DateTime,System.Boolean)">
+            <summary>
+            N.3 — Computes the prohibited trading window around a Level A news event.
+            Returns (windowStart, windowEnd).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.IsInProhibitedWindow(System.DateTime,System.DateTime,System.Boolean)">
+            <summary>
+            N.3 — Checks if a given time falls within the prohibited window.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator">
+            <summary>
+            Order entry calculations. Rules K.1, K.2, K.4.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeBuyEntry(System.Double,System.Double,System.Double)">
+            <summary>
+            K.1 — Computes buy stop entry price.
+            Buffer = max(TickSize, 0.02 × ATR14[1]); Entry = round_up(High[1] + Buffer).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeSellEntry(System.Double,System.Double,System.Double)">
+            <summary>
+            K.1 — Computes sell stop entry price.
+            Buffer = max(TickSize, 0.02 × ATR14[1]); Entry = round_down(Low[1] − Buffer).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.ComputeExpiry(System.DateTime)">
+            <summary>
+            K.2 — Order expiry = signal close time + 30 minutes.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.PassesTriggerDistance(System.Double,System.Double,System.Double)">
+            <summary>
+            K.4 — Trigger distance check.
+            Returns true if |ExpectedFillPrice − EMA20_current| &lt;= 0.60 × ATR14_current.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.RoundUpToTick(System.Double,System.Double)">
+            <summary>
+            Rounds price up to the nearest tick size.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.OrderEntryCalculator.RoundDownToTick(System.Double,System.Double)">
+            <summary>
+            Rounds price down to the nearest tick size.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator">
+            <summary>
+            Trade management calculations. Rules M.1, M.3.
+            Pure domain logic — no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator.ComputeTakeProfit(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double)">
+            <summary>
+            M.1 — Take-profit level.
+            R = |FillPrice − InitialSL|; Buy: TP = FillPrice + 2R; Sell: TP = FillPrice − 2R.
+            TP is rounded to tick size.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Orders.TradeManagementCalculator.IsTimeExitTriggered(System.Int32)">
+            <summary>
+            M.3 — Time exit check.
+            Returns true if 32 M15 candles have elapsed since entry.
+            Caller passes the number of completed M15 candles since entry open.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.DrawdownGuard">
+            <summary>
+            Drawdown and kill-switch guards. Rules P.1–P.6.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateDailyDrawdown(System.Double,System.Double)">
+            <summary>
+            P.2 — Daily drawdown check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateWeeklyDrawdown(System.Double,System.Double)">
+            <summary>
+            P.3 — Weekly drawdown check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateDailyEntries(System.Int32)">
+            <summary>
+            P.4 — Max daily entries check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.ValidateConsecutiveLoss(System.Int32)">
+            <summary>
+            P.5 — Consecutive loss check.
+            lossCount: number of consecutive losses (result &lt; −0.05R).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.DrawdownGuard.IsKillSwitchTriggered(System.Double,System.Double)">
+            <summary>
+            P.6 — Kill switch (total drawdown from equity high-water mark).
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard">
+            <summary>
+            Portfolio risk guards. Rules O.1–O.4.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.RiskPerTrade(System.Double)">
+            <summary>
+            O.1 — Per-trade risk cap.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.PassesReservedRisk(System.Double,System.Double)">
+            <summary>
+            O.2 — Total reserved risk check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.ValidateMetalBasket(System.Double,System.Double,System.Double)">
+            <summary>
+            O.3 — Metal basket risk check.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PortfolioRiskGuard.ValidateUsdExposure(System.Double,System.Double)">
+            <summary>
+            O.4 — USD directional exposure check.
+            sameDirectionRisk = sum of risks in the same USD direction.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.PositionSizer">
+            <summary>
+            Position sizing. Rules L.1–L.5.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeTradeRiskMoney(System.Double)">
+            <summary>
+            L.1 — Trade risk money = Equity × 0.30%.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeLossPerLotAtSL(System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            L.2 dependency — Loss per lot if SL is hit, including a conservative estimate
+            of commission and slippage (Rule: "Commission برآوردی و یک Slippage
+            محافظه‌کارانه در LossPerLotAtSL لحاظ می‌شوند").
+            </summary>
+            <param name="entryPrice">Expected entry price.</param>
+            <param name="stopLoss">Computed stop-loss price.</param>
+            <param name="tickSize">Symbol tick size.</param>
+            <param name="tickValue">Money value of one tick, one lot.</param>
+            <param name="commissionPerLotRoundTurn">Estimated round-turn commission per lot.</param>
+            <param name="conservativeSlippagePriceUnits">Extra price distance to assume for slippage.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeRawVolume(System.Double,System.Double)">
+            <summary>
+            L.2 — Raw volume = TradeRiskMoney / LossPerLotAtSL.
+            Returns (volume, rejection). Null volume means rejection.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.RoundVolume(System.Double,System.Double,System.Double)">
+            <summary>
+            L.3 — Rounds volume down to LotStep. Returns (rounded, rejection).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.PassesMarginCheck(System.Double,System.Double)">
+            <summary>
+            L.4 — Margin check. Returns true if free margin is sufficient.
+            Caller must compute required margin externally.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ValidatePostRoundingRisk(System.Double,System.Double,System.Double)">
+            <summary>
+            L.5 — Post-rounding risk check.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.SpreadFilter">
+            <summary>
+            Spread filter. Rules I.1, I.2, I.3.
+            Baseline must be computed externally (infrastructure).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.Passes(System.Double,System.Double,System.Double)">
+            <summary>
+            I.2 — Checks spread against baseline and absolute cap.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.StopLossCalculator">
+            <summary>
+            Stop-loss calculation and validation. Rules J.4, J.5, J.6.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ComputeLevel(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double)">
+            <summary>
+            J.4 — Computes raw SL level before broker validation.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateDistance(System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            J.5 — Validates stop distance in ATR multiples against symbol bounds.
+            Returns null if valid, or the appropriate rejection ReasonCode.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.StopLossCalculator.ValidateBrokerLimits(CleanPullM15Pro.Domain.Market.TradeDirection,System.Double,System.Double,System.Double)">
+            <summary>
+            J.6 — Validates SL against broker StopLevel and FreezeLevel.
+            For buy: SL must be at or below current bid minus StopLevel.
+            For sell: SL must be at or above current ask plus StopLevel.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.SwingDetector">
+            <summary>
+            Swing detection. Rules J.1, J.2, J.3.
+            Pure domain logic on closed M15 candles.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.IsConfirmedSwingLow(CleanPullM15Pro.Domain.Market.Candle[],System.Int32)">
+            <summary>
+            J.1 — Confirmed swing low at index k.
+            Requires candles[k-2]..candles[k+2] to exist (all closed).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.IsConfirmedSwingHigh(CleanPullM15Pro.Domain.Market.Candle[],System.Int32)">
+            <summary>
+            J.2 — Confirmed swing high at index k.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SwingDetector.SelectSwing(CleanPullM15Pro.Domain.Market.Candle[],CleanPullM15Pro.Domain.Market.TradeDirection,System.Int32)">
+            <summary>
+            J.3 — Selects the latest (most recent) confirmed swing within lookback.
+            candles[0] is the signal candle ([1] in spec terms); candles[1..lookbackCount]
+            are the closed candles before it. Buy → swing low; Sell → swing high.
+            Returns (found, price).
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Risk.VolumeFilter">
+            <summary>
+            Volume filter. Rules H.1, H.2.
+            Baseline must be computed externally (infrastructure).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.IsBaselineValid(System.Int32)">
+            <summary>
+            H.1 — Validates that the baseline has enough observations.
+            Caller must provide pre-computed median baseline.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.Passes(System.Int64,System.Double)">
+            <summary>
+            H.2 — Compares tick volume against baseline.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Signals.SignalEvaluator">
+            <summary>
+            Pure domain evaluator for H1 trend, M15 volatility band, and M15 signal conditions.
+            Rules E.1–E.3, F.1–F.2, G.1–G.3.
+            No state; no cAlgo.API reference.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateH1Trend(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            E.1/E.2/E.3 — Evaluate H1 trend direction from closed-bar indicators.
+            Returns Buy, Sell, or None (neutral). NaN or non-positive ATR → neutral.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateVolatilityBand(System.Double,System.Double)">
+            <summary>
+            F.1/F.2 — Evaluate M15 volatility band.
+            Ratio in [0.70, 1.80] → proceed. Otherwise → rejection.
+            Denominator zero or NaN → REJECT_DATA_INVALID.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateBuySignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            G.2 — Evaluate M15 buy signal. All 10 conditions must pass.
+            Returns first failing condition as rejection.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.EvaluateSellSignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            G.3 — Evaluate M15 sell signal. All 10 conditions must pass.
+            Returns first failing condition as rejection.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Signals.SignalResult">
+            <summary>
+            Signal evaluation outcome. Direction = None means no signal; ReasonCode explains why.
+            Consumed by SignalEvaluator and downstream application layer.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Signals.SignalResult.Direction">
+            <summary>Signal direction. None = no signal.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Signals.SignalResult.RejectionReason">
+            <summary>Rejection code. None when signal is valid.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalResult.Of(CleanPullM15Pro.Domain.Market.TradeDirection)">
+            <summary>Creates a valid signal result.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalResult.Rejected(CleanPullM15Pro.Domain.Market.ReasonCode)">
+            <summary>Creates a rejection result (Direction = None).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Host.CleanPullM15ProBot">
+            <summary>
+            cBot lifecycle adapter. Single-symbol build (EURUSD) — the chart/instance this
+            cBot is attached to determines the traded symbol; add a separate instance per
+            symbol in cTrader if you want more than one, but portfolio-level risk sharing
+            (metal basket, USD exposure — Rules O.3/O.4) is NOT implemented in this build.
+            </summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.RolloverHourUtc">
+            <summary>UTC hour (0–23) at which the daily counter rollover window is centered (Rule P.1 rollover reference).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.MinStopAtr">
+            <summary>Minimum stop distance as a multiple of ATR14[1] (Rule J.2 lower bound on the stop).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.MaxStopAtr">
+            <summary>Maximum stop distance as a multiple of ATR14[1] (Rule J.2 upper bound on the stop).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.AbsoluteSpreadCap">
+            <summary>Absolute spread cap in price units; entry rejected when current spread exceeds this (Rule F.3).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.CommissionPerLotRoundTurn">
+            <summary>Estimated round-turn commission per lot, folded into LossPerLotAtSL (Rule L.2).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.ConservativeSlippagePriceUnits">
+            <summary>Conservative extra price distance assumed as slippage when sizing loss per lot (Rule L.2).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.DisableNewsFilter">
+            <summary>TESTING ONLY — when true the news filter (Rule N.*) is bypassed. Never enable on a live account; see open-questions.md.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnStart">
+            <summary>Called once when the robot starts: wires all cTrader adapters, loads persisted state, builds the evaluation orchestrator, and subscribes to position-closed events.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnBar">
+            <summary>Called on each closed bar: rolls counters, reconciles broker state, and — when <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnTick">
+            <summary>Re-validates a pending order on every tick (Rule K.3) and cancels it if past the Friday new-order cutoff or inside the rollover window.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnStop">
+            <summary>Called when the robot stops: detaches the position-closed event handler.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.RollDailyWeeklyCountersIfNeeded">
+            <summary>
+            Rule P.1 — day starts at New York 00:00, week starts Monday New York 00:00.
+            Resets DailyStartEquity/WeeklyStartEquity/FilledEntriesToday at those boundaries.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter">
+            <summary>
+            Implements IClockPort using IANA time zones for DST-safe session windows.
+            Rules B.1–B.3.
+            .NET 6+ resolves IANA ids ("Europe/London", "America/New_York") on Windows
+            via ICU; if FindSystemTimeZoneById throws on your runtime, this falls back
+            to the equivalent Windows time zone id.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter._rolloverUtcTimeOfDay">
+            <summary>Time-of-day (UTC, broker-declared) the rollover window is centered on.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.#ctor(cAlgo.API.Robot,System.TimeSpan)">
+            <summary>
+            Creates the adapter bound to the host cBot and a rollover time-of-day.
+            </summary>
+            <param name="robot">The cBot instance supplying broker server time.</param>
+            <param name="rolloverUtcTimeOfDay">UTC time-of-day the daily rollover window is centered on.</param>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.UtcNow">
+            <summary>Current broker-reported UTC time.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.IsWithinEntryWindow(System.DateTime)">
+            <summary>
+            Rule B.2/B.3 — true when <paramref name="checkTimeUtc"/> is inside the London open
+            (08:00–11:00) or New York morning (08:30–11:30) local session windows.
+            </summary>
+            <param name="checkTimeUtc">Time to evaluate.</param>
+            <returns>True inside an allowed entry session; otherwise false.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.IsPastFridayNewOrderCutoff(System.DateTime)">
+            <summary>
+            Rule B.3 — true when <paramref name="checkTimeUtc"/> is past Friday's New York
+            new-order cutoff (12:00 NY). Saturday/Sunday return true (market shut regardless).
+            </summary>
+            <param name="checkTimeUtc">Time to evaluate.</param>
+            <returns>True when no new orders may be opened after this time on Friday.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.IsPastFridayForceCloseTime(System.DateTime)">
+            <summary>
+            Rule B.3 — true when <paramref name="checkTimeUtc"/> is past Friday's New York
+            force-close time (15:45 NY), at which open positions must be closed.
+            </summary>
+            <param name="checkTimeUtc">Time to evaluate.</param>
+            <returns>True when existing positions must be force-closed.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.IsWithinRolloverWindow(System.DateTime)">
+            <summary>
+            Rule P.1 — true when <paramref name="checkTimeUtc"/> falls within the ±15-minute
+            rollover window centered on the configured rollover UTC time-of-day (today's
+            or yesterday's, to cover the wrap-around near midnight).
+            </summary>
+            <param name="checkTimeUtc">Time to evaluate.</param>
+            <returns>True inside the daily rollover window; otherwise false.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter.IsClockReliable(System.DateTime,System.DateTime)">
+            <summary>
+            Rule A.2 — true when the broker clock is not stale: <paramref name="localTimeUtc"/>
+            is within 10 seconds of the last price tick <paramref name="lastPriceTimeUtc"/>.
+            </summary>
+            <param name="lastPriceTimeUtc">Timestamp of the most recent price update.</param>
+            <param name="localTimeUtc">Current broker UTC time.</param>
+            <returns>True when the clock is considered reliable; false (fail closed) when stale.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter">
+            <summary>
+            Implements IExecutionPort using cAlgo's Robot trading API.
+            NOTE: this file is the most likely to need small adjustments after the first
+            build — cAlgo's PlaceStopOrder overload set and TradeResult/PendingOrder
+            members can differ slightly by SDK version. The logic (SL/TP attached at
+            submit time, ambiguous responses never treated as success) must be kept
+            if anything here is adjusted.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.#ctor(cAlgo.API.Robot)">
+            <summary>Creates the execution adapter bound to the host cBot's trade API.</summary>
+            <param name="robot">The cBot whose Symbols/PendingOrders/Positions collections are driven.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.SubmitPendingOrder(CleanPullM15Pro.Application.Contracts.PendingOrderRequest)">
+            <summary>
+            Submits a stop order with absolute SL/TP attached at submit time (Rules J.4, M.1).
+            An ambiguous or unsuccessful broker response is never treated as success.
+            </summary>
+            <param name="request">Absolute-price pending-order request.</param>
+            <returns>Ok with the broker order id, or Fail with the broker error/null-response reason.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.CancelPendingOrder(System.String)">
+            <summary>Cancels the pending order with id <paramref name="orderId"/>. A missing order returns true (already gone).</summary>
+            <param name="orderId">Broker id of the pending order to cancel.</param>
+            <returns>True if the order is gone (already-cancelled or cancellation confirmed); false if cancellation failed.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.CloseMarket(System.String)">
+            <summary>Closes the open position identified by <paramref name="positionId"/>.</summary>
+            <param name="positionId">Broker id of the position to close.</param>
+            <returns>True if the position was open and the close succeeded; false if missing or close failed.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.ModifyStops(System.String,System.Double,System.Double)">
+            <summary>Modifies the SL and TP of an open position using absolute price levels.</summary>
+            <param name="positionId">Broker id of the position to modify.</param>
+            <param name="stopLoss">New absolute stop-loss price.</param>
+            <param name="takeProfit">New absolute take-profit price.</param>
+            <returns>True if the modification succeeded; false if the position is missing or the modify failed.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Execution.CTraderExecutionAdapter.GetBrokerState(System.String)">
+            <summary>
+            Reads the broker's current position/order state for <paramref name="symbolName"/>,
+            preferring an open position over a pending order, else reporting flat.
+            </summary>
+            <param name="symbolName">Symbol whose broker state to read.</param>
+            <returns>An open-position snapshot, a pending-order snapshot, or a flat (no position, no order) state.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Logging.CTraderLogAdapter">
+            <summary>
+            Implements ILogPort using cAlgo's Robot.Print (visible in the cBot log tab).
+            Spec section 27 requires every evaluated bar to be logged, even with no signal.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Logging.CTraderLogAdapter.#ctor(cAlgo.API.Robot)">
+            <summary>Creates the log adapter bound to the host cBot's Print output.</summary>
+            <param name="robot">The cBot whose log tab receives the printed lines.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Logging.CTraderLogAdapter.LogDecision(System.String,CleanPullM15Pro.Domain.Market.TradeDirection,System.Nullable{CleanPullM15Pro.Domain.Market.ReasonCode},System.String)">
+            <summary>Logs an evaluated-bar decision line (emitted for every bar, even with no signal — spec §27).</summary>
+            <param name="symbolName">Symbol the decision applies to.</param>
+            <param name="direction">Signal direction, or <see cref="F:CleanPullM15Pro.Domain.Market.TradeDirection.None"/>.</param>
+            <param name="reason">Rejection reason, or null when no rejection.</param>
+            <param name="details">Free-text decision details.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Logging.CTraderLogAdapter.LogRejection(System.String,CleanPullM15Pro.Domain.Market.ReasonCode,System.String)">
+            <summary>Logs a rejection line tagged with its stable reason code.</summary>
+            <param name="symbolName">Symbol that was rejected.</param>
+            <param name="reason">Stable reason code for the rejection.</param>
+            <param name="details">Free-text rejection details.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Logging.CTraderLogAdapter.LogError(System.String,System.String)">
+            <summary>Logs an error line for a non-recoverable condition.</summary>
+            <param name="symbolName">Symbol the error concerns.</param>
+            <param name="message">Error message.</param>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderMarketDataAdapter">
+            <summary>
+            Implements IMarketDataPort using cAlgo's Bars API for the robot's attached symbol.
+            Rule G.1/B.1: every timestamp is converted to UTC before leaving this class.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderMarketDataAdapter.#ctor(cAlgo.API.Robot)">
+            <summary>Creates the market-data adapter bound to the host cBot's attached symbol.</summary>
+            <param name="robot">The cBot whose MarketData/Server are read.</param>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderMarketDataAdapter.ServerTimeUtc">
+            <summary>
+            NOTE: verify at build time that cAlgo.API.Server exposes TimeInUtc on your SDK
+            version. If it does not, replace with Server.Time and a manually configured
+            fixed broker-UTC offset from your broker's specification sheet.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderMarketDataAdapter.GetClosedBars(System.Int32,System.Int32)">
+            <summary>
+            Returns the last <paramref name="count"/> fully closed candles, newest first.
+            Result[0] = spec's [1] (last closed candle). Bars.Last(0) — the current,
+            possibly still-open bar — is never read.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderSnapshotBuilder">
+            <summary>
+            Builds Application-layer snapshots from cAlgo's Bars + Indicators API.
+            NOTE: indicator overload names/signatures are per the cTrader.Automate SDK
+            referenced in the .csproj. If the compiler reports a different overload,
+            adjust the calls below — the *values* required (EMA/ATR/RSI/ADX, Wilder
+            method per spec section 5) do not change, only the exact API surface might.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderSnapshotBuilder.#ctor(cAlgo.API.Robot,CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderMarketDataAdapter)">
+            <summary>Creates the snapshot builder bound to the host cBot and its market-data adapter.</summary>
+            <param name="robot">The cBot supplying MarketData and Indicators.</param>
+            <param name="marketData">Market-data adapter used by the builder.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderSnapshotBuilder.BuildH1Snapshot">
+            <summary>
+            Builds the H1 trend snapshot from Wilder ATR14 and EMA50/EMA200 on the most recent
+            closed hourly bars. Returns a snapshot with <see cref="P:CleanPullM15Pro.Application.Contracts.H1Snapshot.IsValid"/> = false
+            when insufficient warmup bars or NaN indicator values are present.
+            </summary>
+            <returns>The H1 trend snapshot for the last closed hour.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderSnapshotBuilder.BuildM15Snapshot(System.Int32)">
+            <summary>
+            Builds the M15 signal snapshot (EMA20/EMA50, RSI14, ADX14, Wilder ATR14, SMA100 of
+            ATR, and the closed-candle history used for swing detection) from the most recent
+            bars. Returns a snapshot with <see cref="P:CleanPullM15Pro.Application.Contracts.M15Snapshot.IsValid"/> = false on insufficient
+            warmup or NaN indicator values.
+            </summary>
+            <param name="swingLookbackWithMargin">Closed-candle count to extract for swing lookback plus confirmation margin.</param>
+            <returns>The M15 signal snapshot for the last closed bar.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.CTraderSnapshotBuilder.BuildQualitySnapshot(System.Double)">
+            <summary>
+            Volume baseline (Rule H.*): median tick volume of the same M15 slot over the
+            previous 20 valid trading days. "Same slot" = same hour:minute-of-day.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter">
+            <summary>
+            OPEN QUESTION (see README/open-questions): cAlgo does not ship a built-in
+            economic calendar API. This adapter is a manual/stub implementation:
+            - If <see cref="F:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter._events"/> is empty and <see cref="F:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter._treatEmptyAsUnavailable"/>
+              is true (the default, matching Rule N.3 "fail closed"), IsAvailableAndFresh
+              returns false and ALL new entries are blocked — the bot will never trade.
+            - Set _treatEmptyAsUnavailable=false only for controlled demo testing where
+              you accept trading through news events; this intentionally weakens a
+              documented safety filter and must not be used on a live account without
+              a real calendar feed wired in.
+            A real implementation should pull from a maintained calendar source and
+            populate <see cref="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent"/> entries with real event times.
+            </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent">
+            <summary>
+            A single manually-maintained economic event used by this stub news calendar.
+            </summary>
+            <param name="TimeUtc">Scheduled event time in UTC.</param>
+            <param name="Title">Human-readable event title; matched against symbol currencies to decide relevance.</param>
+            <param name="IsFomc">True if this is an FOMC event, which uses a wider prohibition window.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent.#ctor(System.DateTime,System.String,System.Boolean)">
+            <summary>
+            A single manually-maintained economic event used by this stub news calendar.
+            </summary>
+            <param name="TimeUtc">Scheduled event time in UTC.</param>
+            <param name="Title">Human-readable event title; matched against symbol currencies to decide relevance.</param>
+            <param name="IsFomc">True if this is an FOMC event, which uses a wider prohibition window.</param>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent.TimeUtc">
+            <summary>Scheduled event time in UTC.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent.Title">
+            <summary>Human-readable event title; matched against symbol currencies to decide relevance.</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent.IsFomc">
+            <summary>True if this is an FOMC event, which uses a wider prohibition window.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.#ctor(System.Collections.Generic.List{CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.NewsEvent},System.Boolean)">
+            <summary>
+            Constructs the manual calendar. With the default <paramref name="treatEmptyAsUnavailable"/>,
+            an empty event list blocks all new entries (fail closed per Rule N.3); set it false only
+            for controlled demo testing.
+            </summary>
+            <param name="events">Manually-maintained Level-A event list.</param>
+            <param name="treatEmptyAsUnavailable">When true an empty list reports the calendar as unavailable (fail closed).</param>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.IsAvailableAndFresh">
+            <summary>True when a usable calendar is available; false (fail closed) when the event list is empty and <see cref="F:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter._treatEmptyAsUnavailable"/> is set.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.IsInProhibitedWindow(System.String,System.DateTime)">
+            <summary>
+            Returns true when <paramref name="checkTimeUtc"/> falls inside the prohibition window
+            of any Level-A event relevant to <paramref name="symbolName"/>.
+            </summary>
+            <param name="symbolName">Symbol whose currency exposure triggers relevance.</param>
+            <param name="checkTimeUtc">Time to test against event windows.</param>
+            <returns>True if a relevant Level-A event prohibition window covers the time.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter.IsApproachingProhibitedWindow(System.String,System.DateTime,System.TimeSpan)">
+            <summary>True if a relevant Level-A prohibition window starts within <paramref name="lookAhead"/> of <paramref name="checkTimeUtc"/>.</summary>
+            <param name="symbolName">Symbol whose currency exposure triggers relevance.</param>
+            <param name="checkTimeUtc">Reference time.</param>
+            <param name="lookAhead">How far ahead to look for an approaching window.</param>
+            <returns>True if a prohibition window begins within the look-ahead horizon.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter">
+            <summary>
+            Implements IStateStorePort using cAlgo's Robot.LocalStorage (persists across
+            restarts, scoped to this bot instance). Rule S.*, P.1.
+            NOTE: verify LocalStorage.SetString/GetString signatures against your SDK —
+            some versions require a LocalStorageScope parameter (Instance vs Robot).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.#ctor(cAlgo.API.Robot,System.String)">
+            <summary>Constructs the state-store adapter scoped to a single symbol using <paramref name="robot"/>'s LocalStorage.</summary>
+            <param name="robot">The cBot instance providing LocalStorage.</param>
+            <param name="symbolName">Symbol name used to namespace persisted keys.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetState(System.String)">
+            <summary>Loads the persisted bot state for <paramref name="symbolName"/>, defaulting to <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/>.</summary>
+            <param name="symbolName">Symbol whose state is being read.</param>
+            <returns>The persisted <see cref="T:CleanPullM15Pro.Domain.Market.BotState"/>, or <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> if absent/invalid.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetState(System.String,CleanPullM15Pro.Domain.Market.BotState)">
+            <summary>Persists the bot state for <paramref name="symbolName"/>.</summary>
+            <param name="symbolName">Symbol whose state is being written.</param>
+            <param name="state">The state to persist.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetDailyStartEquity">
+            <summary>Gets the daily-start equity, defaulting to 0 when unset.</summary>
+            <returns>The persisted daily-start equity.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetDailyStartEquity(System.Double)">
+            <summary>Persists the daily-start equity.</summary>
+            <param name="value">The daily-start equity to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetWeeklyStartEquity">
+            <summary>Gets the weekly-start equity, defaulting to 0 when unset.</summary>
+            <returns>The persisted weekly-start equity.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetWeeklyStartEquity(System.Double)">
+            <summary>Persists the weekly-start equity.</summary>
+            <param name="value">The weekly-start equity to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetEquityHighWaterMark">
+            <summary>Gets the equity high-water mark, defaulting to 0 when unset.</summary>
+            <returns>The persisted equity high-water mark.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetEquityHighWaterMark(System.Double)">
+            <summary>Persists the equity high-water mark.</summary>
+            <param name="value">The equity high-water mark to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetFilledEntriesToday">
+            <summary>Gets the filled-entries-today counter, defaulting to 0 when unset.</summary>
+            <returns>The persisted filled-entries-today count.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetFilledEntriesToday(System.Int32)">
+            <summary>Persists the filled-entries-today counter.</summary>
+            <param name="value">The count to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetConsecutiveLossCount">
+            <summary>Gets the consecutive-loss count, defaulting to 0 when unset.</summary>
+            <returns>The persisted consecutive-loss count.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetConsecutiveLossCount(System.Int32)">
+            <summary>Persists the consecutive-loss count.</summary>
+            <param name="value">The count to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetKillSwitchActive">
+            <summary>Gets whether the kill switch is active (persists as "1"/"0").</summary>
+            <returns>True if the kill switch is active; otherwise false.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetKillSwitchActive(System.Boolean)">
+            <summary>Persists the kill-switch state.</summary>
+            <param name="value">The kill-switch state to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.GetLastCountersResetDate">
+            <summary>Gets the last counters-reset date string, defaulting to empty when unset.</summary>
+            <returns>The persisted last-reset date string, or <see cref="F:System.String.Empty"/> if absent.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetLastCountersResetDate(System.String)">
+            <summary>Persists the last counters-reset date string.</summary>
+            <param name="date">The date string (yyyy-MM-dd) to store.</param>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter">
+            <summary>
+            Implements ISymbolPort using cAlgo's Robot.Symbols accessor. Rule A.1.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter.#ctor(cAlgo.API.Robot)">
+            <summary>Creates the symbol adapter bound to the host cBot's Symbols accessor.</summary>
+            <param name="robot">The cBot supplying the symbol metadata/quotes.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter.GetSymbolInfo(System.String)">
+            <summary>
+            Builds the domain symbol-info snapshot for <paramref name="symbolName"/> (Rule A.1),
+            converting cSymbol tick value to "money per lot per tick" by multiplying by lot size.
+            A missing broker symbol yields an info object carrying only the symbol name.
+            </summary>
+            <param name="symbolName">Symbol to inspect.</param>
+            <returns>The domain symbol info, or a name-only info when the symbol is not found.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter.CurrentBid(System.String)">
+            <summary>Current bid for <paramref name="symbolName"/>; 0 when the symbol is unavailable.</summary>
+            <param name="symbolName">Symbol to quote.</param>
+            <returns>Current bid price, or 0.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter.CurrentAsk(System.String)">
+            <summary>Current ask for <paramref name="symbolName"/>; 0 when the symbol is unavailable.</summary>
+            <param name="symbolName">Symbol to quote.</param>
+            <returns>Current ask price, or 0.</returns>
+        </member>
+    </members>
+</doc>
