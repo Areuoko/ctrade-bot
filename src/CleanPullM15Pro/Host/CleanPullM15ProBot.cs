@@ -4,8 +4,10 @@ using System.Linq;
 using cAlgo.API;
 using CleanPullM15Pro.Application.Contracts;
 using CleanPullM15Pro.Application.Orchestration;
+using CleanPullM15Pro.Application.Ports;
 using CleanPullM15Pro.Application.StateMachine;
 using CleanPullM15Pro.Domain.Market;
+using CleanPullM15Pro.Domain.Orders;
 using CleanPullM15Pro.Domain.Risk;
 using CleanPullM15Pro.Infrastructure.CTrader.Clock;
 using CleanPullM15Pro.Infrastructure.CTrader.Execution;
@@ -26,6 +28,10 @@ namespace CleanPullM15Pro.Host;
 [Robot(AccessRights = AccessRights.None)]
 public class CleanPullM15ProBot : Robot
 {
+    /// <summary>Finnhub API key for the live economic-calendar feed. Leave empty to fall back to the manual/disabled calendar. Never commit a real key — set this per-instance in the cTrader UI only.</summary>
+    [Parameter("Finnhub API Key (leave empty to disable live feed)", DefaultValue = "")]
+    public string FinnhubApiKey { get; set; } = "";
+     
     /// <summary>UTC hour (0–23) at which the daily counter rollover window is centered (Rule P.1 rollover reference).</summary>
     [Parameter("Rollover hour (UTC)", DefaultValue = 21, MinValue = 0, MaxValue = 23)]
     public int RolloverHourUtc { get; set; }
@@ -63,6 +69,7 @@ public class CleanPullM15ProBot : Robot
     private CTraderSymbolAdapter _symbols = null!;
     private SymbolStateMachine _stateMachine = null!;
     private SymbolEvaluationConfig _config = null!;
+    private FinnhubNewsCalendarAdapter? _finnhubNews;
 
     private const int SwingLookbackCount = 20;
     private const int SwingLookbackMargin = 5; // extra candles so right-side confirmation has room
@@ -80,12 +87,23 @@ public class CleanPullM15ProBot : Robot
         _log = new CTraderLogAdapter(this);
         _symbols = new CTraderSymbolAdapter(this);
 
-        var news = new ManualNewsCalendarAdapter(
-            new List<ManualNewsCalendarAdapter.NewsEvent>(),
-            treatEmptyAsUnavailable: !DisableNewsFilter);
-
-        if (DisableNewsFilter)
-            _log.LogError(symbolName, "News filter is DISABLED (testing mode) — Rule N.* is not enforced. Do not use on a live account.");
+        INewsCalendarPort news;
+        if (!string.IsNullOrWhiteSpace(FinnhubApiKey))
+        {
+            _finnhubNews = new FinnhubNewsCalendarAdapter(
+                FinnhubApiKey,
+                refreshInterval: TimeSpan.FromHours(4),
+                stalenessThreshold: TimeSpan.FromHours(8),
+                log: _log);
+            news = _finnhubNews;
+            _log.LogDecision(symbolName, TradeDirection.None, null, "News calendar: Finnhub live feed enabled");
+        }
+        else
+        {
+            news = new ManualNewsCalendarAdapter(new List<NewsEvent>(), treatEmptyAsUnavailable: !DisableNewsFilter);
+            if (DisableNewsFilter)
+                _log.LogError(symbolName, "News filter is DISABLED (testing mode) — Rule N.* is not enforced. Do not use on a live account.");
+        }
 
         _config = new SymbolEvaluationConfig
         {
@@ -156,9 +174,6 @@ public class CleanPullM15ProBot : Robot
             bool shouldCancel =
                 _clock.IsPastFridayNewOrderCutoff(Server.TimeInUtc) ||
                 _clock.IsWithinRolloverWindow(Server.TimeInUtc);
-            // NOTE: news-approaching and volatility/spread re-checks (Rule K.3 full list)
-            // are not yet wired here — see open-questions.md. Time/rollover are the two
-            // checks implemented so far; extend this method to add the rest.
 
             if (shouldCancel && brokerState.OrderOrPositionId is not null)
             {
@@ -178,6 +193,7 @@ public class CleanPullM15ProBot : Robot
     protected override void OnStop()
     {
         Positions.Closed -= OnPositionClosed;
+        _finnhubNews?.Dispose();
     }
 
     private void OnPositionClosed(PositionClosedEventArgs args)
@@ -191,9 +207,6 @@ public class CleanPullM15ProBot : Robot
         {
             double riskPerUnit = Math.Abs(args.Position.EntryPrice - sl);
             double pnlPerUnit = args.Position.NetProfit / Math.Max(args.Position.VolumeInUnits, 1);
-            // NOTE: precise R-multiple accounting from raw NetProfit/volume is an approximation
-            // here; consider computing R directly from (ClosePrice - EntryPrice)/riskPerUnit
-            // if you have reliable close-price access on the event args in your SDK version.
             r = riskPerUnit > 0 ? pnlPerUnit / riskPerUnit : 0;
         }
 
@@ -222,15 +235,11 @@ public class CleanPullM15ProBot : Robot
                 break;
 
             case BotState.OrderPending when !brokerState.HasPendingOrder && !brokerState.HasOpenPosition:
-                // Expired or cancelled broker-side without us noticing on tick.
                 _stateMachine.TryTransition(BotState.Ready);
                 _stateStore.SetState(SymbolName, BotState.Ready);
                 break;
 
             case BotState.PositionOpen when !brokerState.HasOpenPosition:
-                // Closed since we last checked but the event handler may not have fired yet
-                // (e.g. after a restart) — move to Cooldown defensively; loss-streak accounting
-                // for this specific case is handled by OnPositionClosed when the event does fire.
                 _stateMachine.TryTransition(BotState.Cooldown);
                 _stateStore.SetState(SymbolName, BotState.Cooldown);
                 break;
@@ -241,8 +250,6 @@ public class CleanPullM15ProBot : Robot
                 break;
 
             case BotState.Ready when brokerState.HasOpenPosition || brokerState.HasPendingOrder:
-                // We think we're flat but broker disagrees — do not silently adopt either
-                // side; require reconciliation before any new entry (Rule S.10).
                 _stateMachine.TryTransition(BotState.ReconciliationRequired);
                 _stateStore.SetState(SymbolName, BotState.ReconciliationRequired);
                 _log.LogError(SymbolName, "State mismatch: internal=Ready but broker has an order/position. RECONCILIATION_REQUIRED.");
@@ -262,7 +269,7 @@ public class CleanPullM15ProBot : Robot
             EquityHighWaterMark = _stateStore.GetEquityHighWaterMark(),
             FilledEntriesToday = _stateStore.GetFilledEntriesToday(),
             ConsecutiveLossCount = _stateStore.GetConsecutiveLossCount(),
-            TotalReservedRisk = 0 // single open position max per symbol; reserved risk == that trade's own risk, added in orchestrator
+            TotalReservedRisk = 0
         };
     }
 
@@ -280,10 +287,6 @@ public class CleanPullM15ProBot : Robot
             _stateStore.SetEquityHighWaterMark(Account.Equity);
     }
 
-    /// <summary>
-    /// Rule P.1 — day starts at New York 00:00, week starts Monday New York 00:00.
-    /// Resets DailyStartEquity/WeeklyStartEquity/FilledEntriesToday at those boundaries.
-    /// </summary>
     private void RollDailyWeeklyCountersIfNeeded()
     {
         var newYork = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");

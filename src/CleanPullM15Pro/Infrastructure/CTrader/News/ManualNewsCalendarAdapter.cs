@@ -6,28 +6,18 @@ using CleanPullM15Pro.Domain.Orders;
 namespace CleanPullM15Pro.Infrastructure.CTrader.News;
 
 /// <summary>
-/// OPEN QUESTION (see README/open-questions): cAlgo does not ship a built-in
-/// economic calendar API. This adapter is a manual/stub implementation:
+/// Manual/stub news calendar. Useful for controlled demo testing or as a fallback
+/// when no live feed is wired in. Rule N.3 fail-closed behavior:
 /// - If <see cref="_events"/> is empty and <see cref="_treatEmptyAsUnavailable"/>
-///   is true (the default, matching Rule N.3 "fail closed"), IsAvailableAndFresh
-///   returns false and ALL new entries are blocked — the bot will never trade.
+///   is true (the default), IsAvailableAndFresh returns false and ALL new entries
+///   are blocked — the bot will never trade.
 /// - Set _treatEmptyAsUnavailable=false only for controlled demo testing where
 ///   you accept trading through news events; this intentionally weakens a
-///   documented safety filter and must not be used on a live account without
-///   a real calendar feed wired in.
-/// A real implementation should pull from a maintained calendar source and
-/// populate <see cref="NewsEvent"/> entries with real event times.
+///   documented safety filter and must not be used on a live account.
+/// For a real live feed, see <see cref="FinnhubNewsCalendarAdapter"/> instead.
 /// </summary>
 public sealed class ManualNewsCalendarAdapter : INewsCalendarPort
 {
-    /// <summary>
-    /// A single manually-maintained economic event used by this stub news calendar.
-    /// </summary>
-    /// <param name="TimeUtc">Scheduled event time in UTC.</param>
-    /// <param name="Title">Human-readable event title; matched against symbol currencies to decide relevance.</param>
-    /// <param name="IsFomc">True if this is an FOMC event, which uses a wider prohibition window.</param>
-    public readonly record struct NewsEvent(DateTime TimeUtc, string Title, bool IsFomc);
-
     private readonly List<NewsEvent> _events;
     private readonly bool _treatEmptyAsUnavailable;
 

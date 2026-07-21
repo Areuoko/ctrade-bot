@@ -19,6 +19,15 @@
     "Clouds": [],
     "Parameters": [
       {
+        "DefaultValue": "",
+        "ParameterType": "String",
+        "PropertyName": "FinnhubApiKey",
+        "FriendlyName": "Finnhub API Key (leave empty to disable live feed)",
+        "GroupName": null,
+        "IsValueVisibleInTitle": true,
+        "Description": ""
+      },
+      {
         "MinValue": 0,
         "MaxValue": 23,
         "Step": 1,
