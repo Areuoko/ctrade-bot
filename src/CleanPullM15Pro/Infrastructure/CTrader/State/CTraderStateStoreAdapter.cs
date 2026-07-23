@@ -9,8 +9,13 @@ namespace CleanPullM15Pro.Infrastructure.CTrader.State;
 /// <summary>
 /// Implements IStateStorePort using cAlgo's Robot.LocalStorage (persists across
 /// restarts, scoped to this bot instance). Rule S.*, P.1.
-/// NOTE: verify LocalStorage.SetString/GetString signatures against your SDK —
-/// some versions require a LocalStorageScope parameter (Instance vs Robot).
+///
+/// IMPORTANT: cTrader's LocalStorage key validator only accepts Latin letters,
+/// numbers, and spaces (no underscores, no leading/trailing spaces). The key
+/// prefix below is built WITHOUT any separator characters for this reason —
+/// using "_" here previously caused every LocalStorage call to throw
+/// System.ArgumentException, which crashed OnStart before _stateMachine was
+/// ever assigned, cascading into NullReferenceException on every OnTick.
 /// </summary>
 public sealed class CTraderStateStoreAdapter : IStateStorePort
 {
@@ -23,7 +28,10 @@ public sealed class CTraderStateStoreAdapter : IStateStorePort
     public CTraderStateStoreAdapter(Robot robot, string symbolName)
     {
         _robot = robot;
-        _prefix = "CleanPullM15Pro_" + symbolName + "_";
+        // No underscores or other separators — LocalStorage keys only allow
+        // Latin letters, numbers, and spaces. Symbol names (e.g. "EURUSD")
+        // are already alphanumeric, so straight concatenation is safe.
+        _prefix = "CleanPullM15Pro" + SanitizeKeyPart(symbolName);
     }
 
     /// <summary>Loads the persisted bot state for <paramref name="symbolName"/>, defaulting to <see cref="BotState.Ready"/>.</summary>
@@ -99,7 +107,13 @@ public sealed class CTraderStateStoreAdapter : IStateStorePort
     /// <summary>Persists the last counters-reset date string.</summary>
     /// <param name="date">The date string (yyyy-MM-dd) to store.</param>
     public void SetLastCountersResetDate(string date)
-        => _robot.LocalStorage.SetString(_prefix + "LastResetDate", date);
+    {
+        // The date itself (e.g. "2026-07-23") contains hyphens, which are also
+        // not valid LocalStorage key/value characters for keys — but this is a
+        // VALUE, not a key, so hyphens are fine here. Only key names must be
+        // sanitized (handled via _prefix + fixed suffix strings above).
+        _robot.LocalStorage.SetString(_prefix + "LastResetDate", date);
+    }
 
     private double GetDouble(string key, double fallback)
     {
@@ -118,4 +132,25 @@ public sealed class CTraderStateStoreAdapter : IStateStorePort
 
     private void SetInt(string key, int value)
         => _robot.LocalStorage.SetString(_prefix + key, value.ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// Strips anything that isn't a Latin letter or digit from a value that will
+    /// become part of a LocalStorage key (symbol names are normally alphanumeric
+    /// already, e.g. "EURUSD", but broker-suffixed names like "XAUUSD.a" contain
+    /// a dot, which is also invalid — so this guards against that case too).
+    /// </summary>
+    private static string SanitizeKeyPart(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        var chars = new char[value.Length];
+        int count = 0;
+        foreach (var c in value)
+        {
+            if (char.IsLetterOrDigit(c))
+                chars[count++] = c;
+        }
+        return new string(chars, 0, count);
+    }
 }
