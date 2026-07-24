@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,12 @@ namespace CleanPullM15Pro.Host;
 /// symbol in cTrader if you want more than one, but portfolio-level risk sharing
 /// (metal basket, USD exposure — Rules O.3/O.4) is NOT implemented in this build.
 /// </summary>
-[Robot(AccessRights = AccessRights.None)]
+// AccessRights.FullAccess is required here (not None) because
+// FinnhubNewsCalendarAdapter makes outbound HTTP calls to finnhub.io.
+// With AccessRights.None, cTrader blocks internet access, so every fetch
+// would fail, IsAvailableAndFresh would never become true, and Rule N.3's
+// fail-closed behavior would silently block every new order forever.
+[Robot(AccessRights = AccessRights.FullAccess)]
 public class CleanPullM15ProBot : Robot
 {
     /// <summary>Finnhub API key for the live economic-calendar feed. Leave empty to fall back to the manual/disabled calendar. Never commit a real key — set this per-instance in the cTrader UI only.</summary>
@@ -313,3 +319,4 @@ public class CleanPullM15ProBot : Robot
         _stateStore.SetLastCountersResetDate(today);
     }
 }
+
