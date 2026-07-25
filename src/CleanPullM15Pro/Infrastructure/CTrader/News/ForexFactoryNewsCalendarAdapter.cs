@@ -14,30 +14,42 @@ namespace CleanPullM15Pro.Infrastructure.CTrader.News;
 
 /// <summary>
 /// Implements <see cref="INewsCalendarPort"/> using ForexFactory's free, unauthenticated
-/// weekly calendar feeds (GET ff_calendar_thisweek.json / ff_calendar_nextweek.json).
-/// Replaces <see cref="FinnhubNewsCalendarAdapter"/> as the default live feed, since
-/// Finnhub's economic-calendar endpoint is not included in the free plan (confirmed by
-/// its "You don't have access to this resource" response — a plan-tier error, not a
-/// network/AccessRights problem).
+/// weekly calendar feed (GET ff_calendar_thisweek.json). Replaces
+/// <see cref="FinnhubNewsCalendarAdapter"/> as the default live feed, since Finnhub's
+/// economic-calendar endpoint is not included in the free plan (confirmed by its "You
+/// don't have access to this resource" response — a plan-tier error, not a network/
+/// AccessRights problem).
 ///
-/// Design notes / how this addresses the four open concerns from the previous session:
+/// Design notes / how this addresses the concerns raised in earlier sessions, and what a
+/// live test against the real feed (2026-07-25) confirmed or corrected:
 ///
 /// 1) Classification robustness (Rule N.2): <see cref="Classify"/> gates on the feed's own
 ///    "impact"=="High" field FIRST, then matches canonical wording. Gating on impact avoids
 ///    misclassifying a Low/Medium item (e.g. a regional Fed speaker) that happens to share
-///    a keyword. This still needs to be checked against a few weeks of live JSON to confirm
-///    ForexFactory's exact title wording for FOMC/CPI/NFP/Core PCE/ECB releases — treat the
-///    keyword list below as a first pass, not a verified mapping.
+///    a keyword. Verified against a live fetch (week of 2026-07-19): root shape, field names,
+///    "country"-holds-currency-code, impact values, and the offset-aware date format all
+///    matched what this file assumes. "Main Refinancing Rate" / "ECB Press Conference" /
+///    "Monetary Policy Statement" (EUR) all classify correctly. That sample had no FOMC/US
+///    CPI/NFP/Core PCE row, so the USD keyword branches are still unverified against a live
+///    sample — re-check title wording next time one of those releases falls inside the
+///    fetch window before trusting this in a live account.
 ///
-/// 2) Week-boundary blind spot (Rule N.3): fetches BOTH ff_calendar_thisweek.json and
-///    ff_calendar_nextweek.json every refresh and merges them, so a Monday event isn't
-///    missed when checked from the preceding Friday/Saturday.
+/// 2) Week-boundary blind spot (Rule N.3): an earlier version of this class also fetched
+///    "ff_calendar_nextweek.json" to cover a Monday event checked from the preceding
+///    Friday/Saturday. That URL returns HTTP 404 — ForexFactory does not publish a public
+///    next-week feed under this scheme — so that fetch was removed rather than left calling
+///    a dead endpoint every refresh. The blind spot is real but narrow in practice: the bot
+///    does not trade over the weekend anyway (Friday force-close, no Saturday/Sunday entry
+///    window), and "thisweek.json" itself rolls over to the new week's contents before the
+///    London/NY Monday sessions open. This is a documented, accepted limitation, not a
+///    solved one — flag it in open-questions.md.
 ///
 /// 3) Silent feed breakage: tracks (a) raw JSON row count per fetch — zero rows is a
-///    stronger signal of a format change than zero Level-A rows — and (b) consecutive
-///    successful fetches that classify zero Level-A events, which is unusual given how
-///    often FOMC/CPI/NFP/Core PCE/ECB releases occur. Both surface as queued diagnostic
-///    messages (see next point) rather than silently doing nothing.
+///    stronger signal of a format change (or of ForexFactory's undocumented rate limit,
+///    see point 5) than zero Level-A rows — and (b) consecutive successful fetches that
+///    classify zero Level-A events, which is unusual given how often FOMC/CPI/NFP/Core
+///    PCE/ECB releases occur. Both surface as queued diagnostic messages (see next point)
+///    rather than silently doing nothing.
 ///
 /// 4) Thread safety: the refresh <see cref="Timer"/> callback runs on a ThreadPool thread.
 ///    This class NEVER calls into ILogPort (and therefore never into cAlgo's Robot.Print)
@@ -47,11 +59,20 @@ namespace CleanPullM15Pro.Infrastructure.CTrader.News;
 ///    forward the results to ILogPort itself. This was an unresolved concern in
 ///    <see cref="FinnhubNewsCalendarAdapter"/> (which does call ILogPort directly from the
 ///    timer thread) — it is fixed here, not there; FinnhubNewsCalendarAdapter is unchanged.
+///
+/// 5) Undocumented rate limit: as of an August 2024 policy change, ForexFactory limits
+///    weekly-export downloads (json/xml/csv/ics) to roughly 2 requests per 5 minutes per
+///    source; exceeding it returns an HTML "Request Denied" page instead of JSON, still
+///    with a 200-range status in some reports. That response fails JSON parsing and is
+///    caught by the try/catch in <see cref="FetchAndParseAsync"/>, so it degrades to
+///    a failed fetch (logged, cache preserved, staleness clock keeps ticking) rather than a
+///    crash. The default 2-hour refresh interval stays far under this limit under normal
+///    operation; this note exists so a future change to a shorter interval doesn't
+///    reintroduce the problem silently.
 /// </summary>
 public sealed class ForexFactoryNewsCalendarAdapter : INewsCalendarPort, IDisposable
 {
     private const string ThisWeekUrl = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
-    private const string NextWeekUrl = "https://nfs.faireconomy.media/ff_calendar_nextweek.json";
 
     // Consecutive successful-but-zero-Level-A-events fetches before we start warning.
     // Chosen loosely: with the default 2-hour refresh interval this is ~6 hours of
@@ -72,7 +93,7 @@ public sealed class ForexFactoryNewsCalendarAdapter : INewsCalendarPort, IDispos
     /// Creates the adapter and schedules the first background refresh immediately.
     /// No API key is required — ForexFactory's weekly JSON feeds are public.
     /// </summary>
-    /// <param name="refreshInterval">How often to re-fetch both calendar feeds in the background.</param>
+    /// <param name="refreshInterval">How often to re-fetch the calendar feed in the background.</param>
     /// <param name="stalenessThreshold">Maximum age of the last successful fetch before the calendar is considered unavailable (fail-closed per Rule N.3).</param>
     public ForexFactoryNewsCalendarAdapter(TimeSpan refreshInterval, TimeSpan stalenessThreshold)
     {
@@ -158,23 +179,19 @@ public sealed class ForexFactoryNewsCalendarAdapter : INewsCalendarPort, IDispos
     {
         try
         {
-            var thisWeek = await FetchAndParseAsync(ThisWeekUrl).ConfigureAwait(false);
-            var nextWeek = await FetchAndParseAsync(NextWeekUrl).ConfigureAwait(false);
+            var fetch = await FetchAndParseAsync(ThisWeekUrl).ConfigureAwait(false);
 
-            if (!thisWeek.Success && !nextWeek.Success)
-                return; // both requests failed — keep serving the previous cache; the staleness clock keeps ticking
-
-            var merged = new List<NewsEvent>();
-            if (thisWeek.Success) merged.AddRange(thisWeek.Events);
-            if (nextWeek.Success) merged.AddRange(nextWeek.Events);
+            if (!fetch.Success)
+                return; // request failed (network, HTTP error, rate-limited, or malformed body)
+                        // — keep serving the previous cache; the staleness clock keeps ticking
 
             lock (_lock)
             {
-                _events = merged;
+                _events = fetch.Events;
                 _lastSuccessfulFetchUtc = DateTime.UtcNow;
             }
 
-            if (merged.Count == 0)
+            if (fetch.Events.Count == 0)
             {
                 _consecutiveZeroLevelAFetches++;
                 if (_consecutiveZeroLevelAFetches >= ConsecutiveZeroLevelAWarningThreshold
@@ -333,6 +350,14 @@ public sealed class ForexFactoryNewsCalendarAdapter : INewsCalendarPort, IDispos
 
         if (isEur && t.Contains("press conference"))
             return ("ECB Press Conference", false);
+
+        // "Monetary Policy Statement" is ForexFactory's generic title for the ECB's rate
+        // statement — confirmed against a live sample where it appears alongside
+        // "Main Refinancing Rate" at the same timestamp (2026-07-23 EUR meeting). It has no
+        // "ecb"/"rate" wording of its own, so it needs an explicit check rather than falling
+        // out of the keyword matches below.
+        if (isEur && t.Contains("monetary policy statement"))
+            return ("ECB Rate Decision", false);
 
         if (isEur && (t.Contains("main refinancing rate") || t.Contains("deposit facility rate") || t.Contains("interest rate decision")))
             return ("ECB Rate Decision", false);
