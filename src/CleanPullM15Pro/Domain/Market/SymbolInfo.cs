@@ -29,14 +29,33 @@ public readonly record struct SymbolInfo
     /// <summary>Lot size increment step.</summary>
     public double LotStep { get; init; }
 
-    /// <summary>Minimum stop distance from current price.</summary>
+    /// <summary>
+    /// Minimum stop distance from current price, in price units. Sourced from
+    /// cAlgo's Symbol.MinStopLossDistance (Rule A.1, spec §11.3). Verified live
+    /// against LiteFinance demo EURUSD (2026-07-25): MinDistanceType = Pips,
+    /// value = 0 (broker imposes no restriction on this symbol/account).
+    /// </summary>
     public double StopLevel { get; init; }
 
-    /// <summary>Minimum distance from current price for order modification.</summary>
+    /// <summary>
+    /// Minimum distance from current price for order modification. cAlgo.API has
+    /// no equivalent to MT4/5's Freeze Level (confirmed against the current API
+    /// reference, 2026-07) — left at 0 deliberately, not as an unresolved gap.
+    /// </summary>
     public double FreezeLevel { get; init; }
 
     /// <summary>Commission per lot (estimated).</summary>
     public double Commission { get; init; }
+
+    /// <summary>
+    /// True when the broker reports Symbol.MinDistanceType = Percentage with a
+    /// non-zero MinStopLossDistance. This adapter only converts the Pips case to
+    /// price units (a fixed, safe conversion); Percentage needs the live price at
+    /// trigger time, not the one-time startup read, so it fails closed here
+    /// instead of guessing. IsValid folds this into SYMBOL_DISABLED (spec §2)
+    /// until the conversion is implemented and verified against a real broker.
+    /// </summary>
+    public bool IsMinDistanceUnsupported { get; init; }
 
     /// <summary>
     /// Validates that all required fields are present and positive where required.
@@ -52,5 +71,6 @@ public readonly record struct SymbolInfo
         MaxLot >= MinLot &&
         LotStep > 0 &&
         StopLevel >= 0 &&
-        FreezeLevel >= 0;
+        FreezeLevel >= 0 &&
+        !IsMinDistanceUnsupported;
 }
