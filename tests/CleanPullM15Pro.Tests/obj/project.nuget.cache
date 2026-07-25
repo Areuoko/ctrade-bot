@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "++pOBcjBmzc=",
+  "dgSpecHash": "1K9gpWyrJzw=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
+  "projectFilePath": "C:\\Users\\Sweet\\OneDrive\\Documents\\cAlgo\\Sources\\Robots\\CleanPullM15Pro\\ctrade-bot\\tests\\CleanPullM15Pro.Tests\\CleanPullM15Pro.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Sweet\\.nuget\\packages\\coverlet.collector\\6.0.0\\coverlet.collector.6.0.0.nupkg.sha512",
     "C:\\Users\\Sweet\\.nuget\\packages\\ctrader.automate\\1.0.17\\ctrader.automate.1.0.17.nupkg.sha512",

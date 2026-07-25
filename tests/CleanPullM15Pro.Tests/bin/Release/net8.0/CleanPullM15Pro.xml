@@ -1186,7 +1186,13 @@
             </summary>
         </member>
         <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.FinnhubApiKey">
-            <summary>Finnhub API key for the live economic-calendar feed. Leave empty to fall back to the manual/disabled calendar. Never commit a real key — set this per-instance in the cTrader UI only.</summary>
+            <summary>
+            Finnhub API key for the live economic-calendar feed. Leave empty (default) to use
+            the free ForexFactory feed instead — no key required there. Finnhub's economic
+            calendar endpoint is NOT included in its free plan, so only set this if you have a
+            paid Finnhub plan that includes it. Never commit a real key — set this per-instance
+            in the cTrader UI only.
+            </summary>
         </member>
         <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.RolloverHourUtc">
             <summary>UTC hour (0–23) at which the daily counter rollover window is centered (Rule P.1 rollover reference).</summary>
@@ -1213,13 +1219,21 @@
             <summary>Called once when the robot starts: wires all cTrader adapters, loads persisted state, builds the evaluation orchestrator, and subscribes to position-closed events.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnBar">
-            <summary>Called on each closed bar: rolls counters, reconciles broker state, and — when <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
+            <summary>Called on each closed bar: rolls counters, reconciles broker state, drains any queued news-adapter diagnostics, and — when <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnTick">
             <summary>Re-validates a pending order on every tick (Rule K.3) and cancels it if past the Friday new-order cutoff or inside the rollover window.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnStop">
-            <summary>Called when the robot stops: detaches the position-closed event handler.</summary>
+            <summary>Called when the robot stops: detaches the position-closed event handler and disposes any live news-feed adapters.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.DrainNewsAdapterDiagnostics(System.String)">
+            <summary>
+            Pulls any diagnostic messages queued by a background-thread news-feed refresh and
+            logs them here, on the main cBot thread. This is the only place ILogPort is driven
+            by news-adapter diagnostics — the adapters themselves never call it from their timer
+            callback, precisely so cAlgo's Robot.Print is never invoked off the main thread.
+            </summary>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter">
             <summary>
@@ -1497,6 +1511,105 @@
              releases should be confirmed and this method adjusted if it differs.
              </summary>
         </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter">
+             <summary>
+             Implements <see cref="T:CleanPullM15Pro.Application.Ports.INewsCalendarPort"/> using ForexFactory's free, unauthenticated
+             weekly calendar feeds (GET ff_calendar_thisweek.json / ff_calendar_nextweek.json).
+             Replaces <see cref="T:CleanPullM15Pro.Infrastructure.CTrader.News.FinnhubNewsCalendarAdapter"/> as the default live feed, since
+             Finnhub's economic-calendar endpoint is not included in the free plan (confirmed by
+             its "You don't have access to this resource" response — a plan-tier error, not a
+             network/AccessRights problem).
+            
+             Design notes / how this addresses the four open concerns from the previous session:
+            
+             1) Classification robustness (Rule N.2): <see cref="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.Classify(System.String,System.String)"/> gates on the feed's own
+                "impact"=="High" field FIRST, then matches canonical wording. Gating on impact avoids
+                misclassifying a Low/Medium item (e.g. a regional Fed speaker) that happens to share
+                a keyword. This still needs to be checked against a few weeks of live JSON to confirm
+                ForexFactory's exact title wording for FOMC/CPI/NFP/Core PCE/ECB releases — treat the
+                keyword list below as a first pass, not a verified mapping.
+            
+             2) Week-boundary blind spot (Rule N.3): fetches BOTH ff_calendar_thisweek.json and
+                ff_calendar_nextweek.json every refresh and merges them, so a Monday event isn't
+                missed when checked from the preceding Friday/Saturday.
+            
+             3) Silent feed breakage: tracks (a) raw JSON row count per fetch — zero rows is a
+                stronger signal of a format change than zero Level-A rows — and (b) consecutive
+                successful fetches that classify zero Level-A events, which is unusual given how
+                often FOMC/CPI/NFP/Core PCE/ECB releases occur. Both surface as queued diagnostic
+                messages (see next point) rather than silently doing nothing.
+            
+             4) Thread safety: the refresh <see cref="T:System.Threading.Timer"/> callback runs on a ThreadPool thread.
+                This class NEVER calls into ILogPort (and therefore never into cAlgo's Robot.Print)
+                from that thread. Diagnostic messages are queued in a thread-safe
+                <see cref="T:System.Collections.Concurrent.ConcurrentQueue`1"/> instead; the host MUST call
+                <see cref="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.DrainDiagnostics"/> from its own main-thread callback (e.g. OnBar) and
+                forward the results to ILogPort itself. This was an unresolved concern in
+                <see cref="T:CleanPullM15Pro.Infrastructure.CTrader.News.FinnhubNewsCalendarAdapter"/> (which does call ILogPort directly from the
+                timer thread) — it is fixed here, not there; FinnhubNewsCalendarAdapter is unchanged.
+             </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.#ctor(System.TimeSpan,System.TimeSpan)">
+            <summary>
+            Creates the adapter and schedules the first background refresh immediately.
+            No API key is required — ForexFactory's weekly JSON feeds are public.
+            </summary>
+            <param name="refreshInterval">How often to re-fetch both calendar feeds in the background.</param>
+            <param name="stalenessThreshold">Maximum age of the last successful fetch before the calendar is considered unavailable (fail-closed per Rule N.3).</param>
+        </member>
+        <member name="P:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.IsAvailableAndFresh">
+            <summary>
+            Rule N.3 fail-closed: unavailable until at least one successful fetch has completed,
+            and stale once the last successful fetch is older than the configured threshold.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.IsInProhibitedWindow(System.String,System.DateTime)">
+            <inheritdoc />
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.IsApproachingProhibitedWindow(System.String,System.DateTime,System.TimeSpan)">
+            <inheritdoc />
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.DrainDiagnostics">
+            <summary>
+            Drains diagnostic messages accumulated on the background refresh thread (fetch
+            failures, feed-format anomalies, zero-Level-A-event streaks). MUST be called from
+            the host's own main/event thread (e.g. OnBar) — this method itself is just a
+            thread-safe dequeue and never touches cAlgo's API. Call the returned messages into
+            ILogPort yourself, from that same main-thread call site.
+            </summary>
+            <returns>Zero or more queued diagnostic messages, oldest first. Empty if nothing pending.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.Dispose">
+            <summary>Stops the background refresh timer and releases the HTTP client. Call from OnStop.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.ParseAndClassify(System.String,System.Int32@)">
+            <summary>
+            Parses the ForexFactory weekly feed — a plain JSON array of
+            { title, country, date, impact, forecast, previous } objects, where "country" is
+            actually the currency code (e.g. "USD", "EUR") — and keeps only High-impact rows
+            matching spec section 15.2's fixed Level-A list, normalized to the canonical titles
+            <see cref="M:CleanPullM15Pro.Domain.Orders.NewsWindowCalculator.IsLevelA(System.String)"/> expects.
+            </summary>
+            <param name="json">Raw JSON response body.</param>
+            <param name="rawRowCount">Total rows found in the JSON array, before any filtering — used to detect a broken/changed feed.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ForexFactoryNewsCalendarAdapter.Classify(System.String,System.String)">
+             <summary>
+             Maps a (currency, title) pair from the ForexFactory feed onto one of spec section
+             15.2's canonical Level-A titles. Returns null for anything outside that fixed list —
+             deliberately conservative; an unrecognized High-impact row is never treated as
+             Level-A just because it looks important.
+            
+             OPEN QUESTION carried over from the Finnhub adapter: spec section 15.2 lists a single
+             "US CPI" line without distinguishing headline vs. core. This keeps the same choice
+             already made there — headline CPI only (title contains "cpi" but not "core") — for
+             consistency. Revisit if that reading turns out to be wrong.
+            
+             NOTE: verify these keyword matches against a live response sample — ForexFactory's
+             exact title wording for FOMC/CPI/NFP/PCE/ECB releases should be confirmed and this
+             method adjusted if it differs (see class-level doc comment, concern #1).
+             </summary>
+        </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter">
             <summary>
             Manual/stub news calendar. Useful for controlled demo testing or as a fallback
@@ -1539,12 +1652,17 @@
             <returns>True if a prohibition window begins within the look-ahead horizon.</returns>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter">
-            <summary>
-            Implements IStateStorePort using cAlgo's Robot.LocalStorage (persists across
-            restarts, scoped to this bot instance). Rule S.*, P.1.
-            NOTE: verify LocalStorage.SetString/GetString signatures against your SDK —
-            some versions require a LocalStorageScope parameter (Instance vs Robot).
-            </summary>
+             <summary>
+             Implements IStateStorePort using cAlgo's Robot.LocalStorage (persists across
+             restarts, scoped to this bot instance). Rule S.*, P.1.
+            
+             IMPORTANT: cTrader's LocalStorage key validator only accepts Latin letters,
+             numbers, and spaces (no underscores, no leading/trailing spaces). The key
+             prefix below is built WITHOUT any separator characters for this reason —
+             using "_" here previously caused every LocalStorage call to throw
+             System.ArgumentException, which crashed OnStart before _stateMachine was
+             ever assigned, cascading into NullReferenceException on every OnTick.
+             </summary>
         </member>
         <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.#ctor(cAlgo.API.Robot,System.String)">
             <summary>Constructs the state-store adapter scoped to a single symbol using <paramref name="robot"/>'s LocalStorage.</summary>
@@ -1616,6 +1734,14 @@
         <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SetLastCountersResetDate(System.String)">
             <summary>Persists the last counters-reset date string.</summary>
             <param name="date">The date string (yyyy-MM-dd) to store.</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter.SanitizeKeyPart(System.String)">
+            <summary>
+            Strips anything that isn't a Latin letter or digit from a value that will
+            become part of a LocalStorage key (symbol names are normally alphanumeric
+            already, e.g. "EURUSD", but broker-suffixed names like "XAUUSD.a" contain
+            a dot, which is also invalid — so this guards against that case too).
+            </summary>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Symbols.CTraderSymbolAdapter">
             <summary>

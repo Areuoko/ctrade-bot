@@ -22,7 +22,7 @@
         "DefaultValue": "",
         "ParameterType": "String",
         "PropertyName": "FinnhubApiKey",
-        "FriendlyName": "Finnhub API Key (leave empty to disable live feed)",
+        "FriendlyName": "Finnhub API Key (leave empty to use free ForexFactory feed)",
         "GroupName": null,
         "IsValueVisibleInTitle": true,
         "Description": ""
@@ -109,7 +109,11 @@
         "Description": ""
       }
     ],
-    "Capabilities": [],
+    "Capabilities": [
+      {
+        "CapabilityType": "FullTrust"
+      }
+    ],
     "CustomAttributes": [
       {
         "TypeFullName": "System.Runtime.CompilerServices.NullableContextAttribute",

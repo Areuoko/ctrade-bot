@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CleanPullM15Pro")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+37736530327dae8c88b3ee3f20b782e89a3df069")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a7d56c2d8e1ea9997babde4002b0f51b72abd055")]
 [assembly: System.Reflection.AssemblyProductAttribute("CleanPullM15Pro")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CleanPullM15Pro")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
