@@ -75,6 +75,8 @@ public sealed class MarketQualitySnapshot
     public double CurrentSpread { get; init; }
     /// <summary>Baseline spread used to gauge the current spread (Rule I.1).</summary>
     public double SpreadBaseline { get; init; }
+    /// <summary>Count of valid rolling spread observations contributing to the baseline (Rule I.1).</summary>
+    public int SpreadValidObservations { get; init; }
     /// <summary>Absolute spread cap above which entries are rejected (Rule I.1).</summary>
     public double AbsoluteSpreadCap { get; init; }
 }

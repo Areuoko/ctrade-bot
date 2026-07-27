@@ -189,3 +189,14 @@
 - **Safe fail-closed:** If mapping fails → SYMBOL_DISABLED.
 - **Owner:** User
 - **Status:** Open
+
+RESOLVED (deviation, documented) — Rule I.1 / SpreadBaseline method:
+spec section 10 defines SpreadBaseline as median-of-same-15-minute-slot over the
+previous 20 trading days. Implementation uses a single non-slotted rolling window
+(mean of the last ~50 OnBar spread readings, LocalStorage-persisted) instead.
+Rationale: EURUSD spread doesn't vary by time-of-day as sharply as tick volume does,
+so slotting adds latency (each slot would need ~20 trading days to validate) without
+much accuracy gain, and would stall entries through most of the Demo Forward Test
+phase. Baseline requires >= 20 rolling observations before SpreadFilter treats it as
+valid (fail-closed below that, per Rule N.3-style philosophy). Revisit if Demo data
+shows EURUSD spread has meaningful session-dependent structure this approach misses.

@@ -9,6 +9,16 @@ namespace CleanPullM15Pro.Domain.Risk;
 public static class SpreadFilter
 {
     private const double SpreadMultiplier = 1.50;
+    private const int MinObservations = 20;
+
+    /// <summary>
+    /// I.1 — Validates that the rolling spread baseline has enough observations
+    /// before it can be trusted. Below this threshold, callers must fail closed
+    /// (reject new entries) per Rule N.3-style philosophy, rather than using an
+    /// under-sampled or degenerate baseline.
+    /// </summary>
+    public static bool IsBaselineValid(int validObservations)
+        => validObservations >= MinObservations;
 
     /// <summary>
     /// I.2 — Checks spread against baseline and absolute cap.

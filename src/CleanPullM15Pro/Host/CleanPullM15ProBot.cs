@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,25 +25,26 @@ namespace CleanPullM15Pro.Host;
 /// symbol in cTrader if you want more than one, but portfolio-level risk sharing
 /// (metal basket, USD exposure — Rules O.3/O.4) is NOT implemented in this build.
 /// </summary>
-// AccessRights.FullAccess is required here (not None) because both news adapters
-// that can be wired below make outbound HTTP calls (FinnhubNewsCalendarAdapter to
-// finnhub.io, ForexFactoryNewsCalendarAdapter to nfs.faireconomy.media). With
-// AccessRights.None, cTrader blocks internet access, so every fetch would fail,
-// IsAvailableAndFresh would never become true, and Rule N.3's fail-closed behavior
-// would silently block every new order forever.
-[Robot(AccessRights = AccessRights.FullAccess)]
+// AccessRights.None — required to run this cBot on cTrader Cloud, which does not
+// permit internet access for custom (non-Store) cBots. This means the live
+// Finnhub/ForexFactory feeds cannot be used in this deployment; the news calendar
+// is instead driven by the ManualLevelAEvents parameter, hand-updated by the
+// operator (see docs/open-questions.md). LocalStorage (state persistence) is
+// unaffected — it works regardless of AccessRights, confirmed against cTrader's
+// own documentation.
+[Robot(AccessRights = AccessRights.None)]
 public class CleanPullM15ProBot : Robot
 {
     /// <summary>
-    /// Finnhub API key for the live economic-calendar feed. Leave empty (default) to use
-    /// the free ForexFactory feed instead — no key required there. Finnhub's economic
-    /// calendar endpoint is NOT included in its free plan, so only set this if you have a
-    /// paid Finnhub plan that includes it. Never commit a real key — set this per-instance
-    /// in the cTrader UI only.
+    /// Hand-maintained Level-A news list, one event per line: "yyyy-MM-ddTHH:mm:ssZ|Title|IsFomc".
+    /// Required because AccessRights.None (for Cloud) blocks the live Finnhub/ForexFactory
+    /// feeds. Leave empty to fail closed (Rule N.3) — no new entries until this is filled in.
+    /// Update this before each week/event and restart the cBot instance; open positions are
+    /// unaffected by a restart since SL/TP are always registered broker-side.
     /// </summary>
-    [Parameter("Finnhub API Key (leave empty to use free ForexFactory feed)", DefaultValue = "")]
-    public string FinnhubApiKey { get; set; } = "";
-     
+    [Parameter("Level-A news this week (UTC|Title|IsFomc per line)", DefaultValue = "2026-07-29T18:00:00Z|FOMC Rate Decision|true\n2026-07-29T18:30:00Z|FOMC Press Conference|true\n2026-07-30T12:30:00Z|US Core PCE|false")]
+public string ManualLevelAEvents { get; set; } = "2026-07-29T18:00:00Z|FOMC Rate Decision|true\n2026-07-29T18:30:00Z|FOMC Press Conference|true\n2026-07-30T12:30:00Z|US Core PCE|false";
+
     /// <summary>UTC hour (0–23) at which the daily counter rollover window is centered (Rule P.1 rollover reference).</summary>
     [Parameter("Rollover hour (UTC)", DefaultValue = 21, MinValue = 0, MaxValue = 23)]
     public int RolloverHourUtc { get; set; }
@@ -82,8 +82,6 @@ public class CleanPullM15ProBot : Robot
     private CTraderSymbolAdapter _symbols = null!;
     private SymbolStateMachine _stateMachine = null!;
     private SymbolEvaluationConfig _config = null!;
-    private FinnhubNewsCalendarAdapter? _finnhubNews;
-    private ForexFactoryNewsCalendarAdapter? _forexFactoryNews;
 
     private const int SwingLookbackCount = 20;
     private const int SwingLookbackMargin = 5; // extra candles so right-side confirmation has room
@@ -101,6 +99,10 @@ public class CleanPullM15ProBot : Robot
         _log = new CTraderLogAdapter(this);
         _symbols = new CTraderSymbolAdapter(this);
 
+        var (manualEvents, parseErrors) = ManualNewsEventsParser.Parse(ManualLevelAEvents);
+        foreach (var err in parseErrors)
+            _log.LogError(symbolName, "ManualLevelAEvents parse error — " + err);
+
         INewsCalendarPort news;
         if (DisableNewsFilter)
         {
@@ -109,23 +111,13 @@ public class CleanPullM15ProBot : Robot
             news = new ManualNewsCalendarAdapter(new List<NewsEvent>(), treatEmptyAsUnavailable: false);
             _log.LogError(symbolName, "News filter is DISABLED (testing mode) — Rule N.* is not enforced. Do not use on a live account.");
         }
-        else if (!string.IsNullOrWhiteSpace(FinnhubApiKey))
-        {
-            _finnhubNews = new FinnhubNewsCalendarAdapter(
-                FinnhubApiKey,
-                refreshInterval: TimeSpan.FromHours(4),
-                stalenessThreshold: TimeSpan.FromHours(8),
-                log: _log);
-            news = _finnhubNews;
-            _log.LogDecision(symbolName, TradeDirection.None, null, "News calendar: Finnhub live feed enabled");
-        }
         else
         {
-            _forexFactoryNews = new ForexFactoryNewsCalendarAdapter(
-                refreshInterval: TimeSpan.FromHours(2),
-                stalenessThreshold: TimeSpan.FromHours(8));
-            news = _forexFactoryNews;
-            _log.LogDecision(symbolName, TradeDirection.None, null, "News calendar: ForexFactory free feed enabled (no API key)");
+            // Rule N.3 fail-closed preserved: an empty or fully-unparsed list means
+            // IsAvailableAndFresh is false and no new entries are allowed.
+            news = new ManualNewsCalendarAdapter(manualEvents, treatEmptyAsUnavailable: true);
+            _log.LogDecision(symbolName, TradeDirection.None, null,
+                $"News calendar: manual Level-A list ({manualEvents.Count} events parsed, {parseErrors.Count} parse errors)");
         }
 
         _config = new SymbolEvaluationConfig
@@ -152,7 +144,7 @@ public class CleanPullM15ProBot : Robot
         _log.LogDecision(symbolName, TradeDirection.None, null, "Bot started, state=" + _stateMachine.Current);
     }
 
-    /// <summary>Called on each closed bar: rolls counters, reconciles broker state, drains any queued news-adapter diagnostics, and — when <see cref="BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
+    /// <summary>Called on each closed bar: rolls counters, reconciles broker state, and — when <see cref="BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
     protected override void OnBar()
     {
         string symbolName = SymbolName;
@@ -161,7 +153,6 @@ public class CleanPullM15ProBot : Robot
         {
             RollDailyWeeklyCountersIfNeeded();
             SyncStateWithBroker();
-            DrainNewsAdapterDiagnostics(symbolName);
 
             if (_stateMachine.Current != BotState.Ready)
                 return; // orchestrator itself re-checks, but skip snapshot work if obviously not applicable
@@ -213,27 +204,10 @@ public class CleanPullM15ProBot : Robot
         }
     }
 
-    /// <summary>Called when the robot stops: detaches the position-closed event handler and disposes any live news-feed adapters.</summary>
+    /// <summary>Called when the robot stops: detaches the position-closed event handler.</summary>
     protected override void OnStop()
     {
         Positions.Closed -= OnPositionClosed;
-        _finnhubNews?.Dispose();
-        _forexFactoryNews?.Dispose();
-    }
-
-    /// <summary>
-    /// Pulls any diagnostic messages queued by a background-thread news-feed refresh and
-    /// logs them here, on the main cBot thread. This is the only place ILogPort is driven
-    /// by news-adapter diagnostics — the adapters themselves never call it from their timer
-    /// callback, precisely so cAlgo's Robot.Print is never invoked off the main thread.
-    /// </summary>
-    private void DrainNewsAdapterDiagnostics(string symbolName)
-    {
-        if (_forexFactoryNews is null)
-            return;
-
-        foreach (var message in _forexFactoryNews.DrainDiagnostics())
-            _log.LogError(symbolName, message);
     }
 
     private void OnPositionClosed(PositionClosedEventArgs args)

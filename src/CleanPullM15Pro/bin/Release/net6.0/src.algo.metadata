@@ -19,10 +19,10 @@
     "Clouds": [],
     "Parameters": [
       {
-        "DefaultValue": "",
+        "DefaultValue": "2026-07-29T18:00:00Z|FOMC Rate Decision|true\n2026-07-29T18:30:00Z|FOMC Press Conference|true\n2026-07-30T12:30:00Z|US Core PCE|false",
         "ParameterType": "String",
-        "PropertyName": "FinnhubApiKey",
-        "FriendlyName": "Finnhub API Key (leave empty to use free ForexFactory feed)",
+        "PropertyName": "ManualLevelAEvents",
+        "FriendlyName": "Level-A news this week (UTC|Title|IsFomc per line)",
         "GroupName": null,
         "IsValueVisibleInTitle": true,
         "Description": ""
@@ -109,11 +109,7 @@
         "Description": ""
       }
     ],
-    "Capabilities": [
-      {
-        "CapabilityType": "FullTrust"
-      }
-    ],
+    "Capabilities": [],
     "CustomAttributes": [
       {
         "TypeFullName": "System.Runtime.CompilerServices.NullableContextAttribute",

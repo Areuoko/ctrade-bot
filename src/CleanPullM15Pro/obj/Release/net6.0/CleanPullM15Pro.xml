@@ -126,6 +126,9 @@
         <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.SpreadBaseline">
             <summary>Baseline spread used to gauge the current spread (Rule I.1).</summary>
         </member>
+        <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.SpreadValidObservations">
+            <summary>Count of valid rolling spread observations contributing to the baseline (Rule I.1).</summary>
+        </member>
         <member name="P:CleanPullM15Pro.Application.Contracts.MarketQualitySnapshot.AbsoluteSpreadCap">
             <summary>Absolute spread cap above which entries are rejected (Rule I.1).</summary>
         </member>
@@ -775,13 +778,32 @@
             <summary>Lot size increment step.</summary>
         </member>
         <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.StopLevel">
-            <summary>Minimum stop distance from current price.</summary>
+            <summary>
+            Minimum stop distance from current price, in price units. Sourced from
+            cAlgo's Symbol.MinStopLossDistance (Rule A.1, spec §11.3). Verified live
+            against LiteFinance demo EURUSD (2026-07-25): MinDistanceType = Pips,
+            value = 0 (broker imposes no restriction on this symbol/account).
+            </summary>
         </member>
         <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.FreezeLevel">
-            <summary>Minimum distance from current price for order modification.</summary>
+            <summary>
+            Minimum distance from current price for order modification. cAlgo.API has
+            no equivalent to MT4/5's Freeze Level (confirmed against the current API
+            reference, 2026-07) — left at 0 deliberately, not as an unresolved gap.
+            </summary>
         </member>
         <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.Commission">
             <summary>Commission per lot (estimated).</summary>
+        </member>
+        <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.IsMinDistanceUnsupported">
+            <summary>
+            True when the broker reports Symbol.MinDistanceType = Percentage with a
+            non-zero MinStopLossDistance. This adapter only converts the Pips case to
+            price units (a fixed, safe conversion); Percentage needs the live price at
+            trigger time, not the one-time startup read, so it fails closed here
+            instead of guessing. IsValid folds this into SYMBOL_DISABLED (spec §2)
+            until the conversion is implemented and verified against a real broker.
+            </summary>
         </member>
         <member name="P:CleanPullM15Pro.Domain.Market.SymbolInfo.IsValid">
             <summary>
@@ -1057,6 +1079,14 @@
             Baseline must be computed externally (infrastructure).
             </summary>
         </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.IsBaselineValid(System.Int32)">
+            <summary>
+            I.1 — Validates that the rolling spread baseline has enough observations
+            before it can be trusted. Below this threshold, callers must fail closed
+            (reject new entries) per Rule N.3-style philosophy, rather than using an
+            under-sampled or degenerate baseline.
+            </summary>
+        </member>
         <member name="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.Passes(System.Double,System.Double,System.Double)">
             <summary>
             I.2 — Checks spread against baseline and absolute cap.
@@ -1185,13 +1215,13 @@
             (metal basket, USD exposure — Rules O.3/O.4) is NOT implemented in this build.
             </summary>
         </member>
-        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.FinnhubApiKey">
+        <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.ManualLevelAEvents">
             <summary>
-            Finnhub API key for the live economic-calendar feed. Leave empty (default) to use
-            the free ForexFactory feed instead — no key required there. Finnhub's economic
-            calendar endpoint is NOT included in its free plan, so only set this if you have a
-            paid Finnhub plan that includes it. Never commit a real key — set this per-instance
-            in the cTrader UI only.
+            Hand-maintained Level-A news list, one event per line: "yyyy-MM-ddTHH:mm:ssZ|Title|IsFomc".
+            Required because AccessRights.None (for Cloud) blocks the live Finnhub/ForexFactory
+            feeds. Leave empty to fail closed (Rule N.3) — no new entries until this is filled in.
+            Update this before each week/event and restart the cBot instance; open positions are
+            unaffected by a restart since SL/TP are always registered broker-side.
             </summary>
         </member>
         <member name="P:CleanPullM15Pro.Host.CleanPullM15ProBot.RolloverHourUtc">
@@ -1219,21 +1249,13 @@
             <summary>Called once when the robot starts: wires all cTrader adapters, loads persisted state, builds the evaluation orchestrator, and subscribes to position-closed events.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnBar">
-            <summary>Called on each closed bar: rolls counters, reconciles broker state, drains any queued news-adapter diagnostics, and — when <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
+            <summary>Called on each closed bar: rolls counters, reconciles broker state, and — when <see cref="F:CleanPullM15Pro.Domain.Market.BotState.Ready"/> — builds the H1/M15/quality/account snapshots and runs the evaluation orchestrator.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnTick">
             <summary>Re-validates a pending order on every tick (Rule K.3) and cancels it if past the Friday new-order cutoff or inside the rollover window.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.OnStop">
-            <summary>Called when the robot stops: detaches the position-closed event handler and disposes any live news-feed adapters.</summary>
-        </member>
-        <member name="M:CleanPullM15Pro.Host.CleanPullM15ProBot.DrainNewsAdapterDiagnostics(System.String)">
-            <summary>
-            Pulls any diagnostic messages queued by a background-thread news-feed refresh and
-            logs them here, on the main cBot thread. This is the only place ILogPort is driven
-            by news-adapter diagnostics — the adapters themselves never call it from their timer
-            callback, precisely so cAlgo's Robot.Print is never invoked off the main thread.
-            </summary>
+            <summary>Called when the robot stops: detaches the position-closed event handler.</summary>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.Clock.CTraderClockAdapter">
             <summary>
@@ -1434,7 +1456,45 @@
             <summary>
             Volume baseline (Rule H.*): median tick volume of the same M15 slot over the
             previous 20 valid trading days. "Same slot" = same hour:minute-of-day.
+            Spread baseline (Rule I.*): mean of a non-slotted rolling window of recent
+            spread readings (see <see cref="T:CleanPullM15Pro.Infrastructure.CTrader.MarketData.SpreadHistoryStore"/> and open-questions.md
+            for why this deviates from the spec's same-slot-median definition).
             </summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.MarketData.SpreadHistoryStore">
+             <summary>
+             Rolling-window spread history, persisted via cAlgo's Robot.LocalStorage so it
+             survives restarts. Rule I.1 requires a spread baseline distinct from the current
+             reading — the previous "spreadBaseline = currentSpread" fallback made the relative
+             check "currentSpread &lt;= 1.5 * spreadBaseline" always true, a silent no-op filter.
+            
+             Deliberate deviation from spec section 10's exact definition (median of the same
+             15-minute slot over the previous 20 trading days): a single non-slotted rolling
+             window of the most recent samples is used instead. Recorded as an accepted
+             research-parameter deviation (spec section 29 classifies spread-baseline method as
+             "پژوهشی", not "ثابت منطقی") — see open-questions.md. Slotting by time-of-day suits
+             tick volume (which varies sharply by session) but adds needless latency here:
+             EURUSD spread is comparatively stable through the day, and a same-slot-only
+             baseline would take ~20 trading days per slot to validate, stalling entries
+             through most of the Demo Forward Test phase.
+             </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.SpreadHistoryStore.#ctor(cAlgo.API.Robot,System.String)">
+            <summary>Creates the store scoped to a single symbol using <paramref name="robot"/>'s LocalStorage.</summary>
+            <param name="robot">The cBot instance providing LocalStorage.</param>
+            <param name="symbolName">Symbol name used to namespace the persisted key (sanitized to Latin letters/digits only — LocalStorage keys allow no other characters).</param>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.SpreadHistoryStore.RecordAndGetBaseline(System.Double)">
+            <summary>
+            Records the current spread reading and returns the updated rolling baseline.
+            Call once per OnBar (on the same M15 close the quality snapshot is built for) —
+            recording on every tick would bias the baseline toward whichever moments
+            generate more ticks rather than toward "typical spread per bar".
+            </summary>
+            <param name="currentSpread">Current spread reading in price units.</param>
+            <returns>(Baseline, ValidObservations). Baseline is the mean of stored samples
+            after recording this one; 0 if none yet. Caller must check validity via
+            <see cref="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.IsBaselineValid(System.Int32)"/> before trusting Baseline.</returns>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.FinnhubNewsCalendarAdapter">
              <summary>
@@ -1672,6 +1732,27 @@
             <param name="checkTimeUtc">Reference time.</param>
             <param name="lookAhead">How far ahead to look for an approaching window.</param>
             <returns>True if a prohibition window begins within the look-ahead horizon.</returns>
+        </member>
+        <member name="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsEventsParser">
+            <summary>
+            Parses a hand-maintained Level-A news list from the cBot's text parameter into
+            <see cref="T:CleanPullM15Pro.Domain.Orders.NewsEvent"/> records for <see cref="T:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsCalendarAdapter"/>. Used
+            when the bot runs under AccessRights.None (e.g. cTrader Cloud, which disallows
+            internet access for custom cBots — the Finnhub/ForexFactory live feeds cannot run
+            there). Format: one event per line, "yyyy-MM-ddTHH:mm:ssZ|Title|IsFomc", e.g.
+              2026-07-29T18:00:00Z|FOMC Rate Decision|true
+              2026-07-30T12:30:00Z|US Core PCE|false
+            Title must exactly match one of the canonical Level-A titles recognized by
+            NewsWindowCalculator.IsLevelA (spec section 15.2); a typo there fails closed at
+            the window-check stage, not here. Blank lines and lines starting with '#' are
+            ignored. A line that fails to parse is skipped and reported in Errors so the
+            caller can log it — parsing never throws and never stops on one bad line.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Infrastructure.CTrader.News.ManualNewsEventsParser.Parse(System.String)">
+            <summary>Parses raw multi-line parameter text into events plus any per-line errors.</summary>
+            <param name="rawText">Raw parameter text, one event per line.</param>
+            <returns>Parsed events and human-readable errors for lines that failed to parse.</returns>
         </member>
         <member name="T:CleanPullM15Pro.Infrastructure.CTrader.State.CTraderStateStoreAdapter">
              <summary>

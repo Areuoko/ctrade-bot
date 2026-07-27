@@ -185,6 +185,19 @@ public sealed class BarEvaluationOrchestrator
 
         if (!VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline))
             return Reject(symbol, ReasonCode.RejectVolume, "Tick volume below baseline threshold");
+         // Step 10 — Volume and spread filters
+if (!VolumeFilter.IsBaselineValid(quality.VolumeValidObservations))
+    return Reject(symbol, ReasonCode.RejectVolumeBaseline, "Volume baseline has too few observations");
+
+if (!VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline))
+    return Reject(symbol, ReasonCode.RejectVolume, "Tick volume below baseline threshold");
+
+// NEW — قبلاً این چک اصلاً وجود نداشت
+if (!SpreadFilter.IsBaselineValid(quality.SpreadValidObservations))
+    return Reject(symbol, ReasonCode.RejectSpreadBaseline, "Spread baseline has too few observations");
+
+if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.AbsoluteSpreadCap))
+    return Reject(symbol, ReasonCode.RejectSpread, "Spread above allowed threshold");         
 
         if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.AbsoluteSpreadCap))
             return Reject(symbol, ReasonCode.RejectSpread, "Spread above allowed threshold");

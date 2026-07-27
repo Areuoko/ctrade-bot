@@ -334,7 +334,12 @@ public sealed class ForexFactoryNewsCalendarAdapter : INewsCalendarPort, IDispos
 
         if (isUsd && (t.Contains("fomc") || t.Contains("federal funds rate")))
         {
-            return (t.Contains("statement") || t.Contains("press conference"))
+            // "FOMC Statement" and "Federal Funds Rate" are the rate-decision release;
+            // only an explicit "press conference" row is the separate press conference
+            // event. Verified against a live feed sample (2026-07-29 FOMC): ForexFactory
+            // publishes "Federal Funds Rate", "FOMC Statement", and "FOMC Press
+            // Conference" as three distinct rows at the same/adjacent timestamps.
+            return t.Contains("press conference")
                 ? ("FOMC Press Conference", true)
                 : ("FOMC Rate Decision", true);
         }

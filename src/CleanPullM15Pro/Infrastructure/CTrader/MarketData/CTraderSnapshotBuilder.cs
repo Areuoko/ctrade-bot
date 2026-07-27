@@ -23,6 +23,7 @@ public sealed class CTraderSnapshotBuilder
 
     private readonly Robot _robot;
     private readonly CTraderMarketDataAdapter _marketData;
+    private readonly SpreadHistoryStore _spreadHistory;
 
     /// <summary>Creates the snapshot builder bound to the host cBot and its market-data adapter.</summary>
     /// <param name="robot">The cBot supplying MarketData and Indicators.</param>
@@ -31,6 +32,7 @@ public sealed class CTraderSnapshotBuilder
     {
         _robot = robot;
         _marketData = marketData;
+        _spreadHistory = new SpreadHistoryStore(robot, robot.SymbolName);
     }
 
     /// <summary>
@@ -142,6 +144,9 @@ public sealed class CTraderSnapshotBuilder
     /// <summary>
     /// Volume baseline (Rule H.*): median tick volume of the same M15 slot over the
     /// previous 20 valid trading days. "Same slot" = same hour:minute-of-day.
+    /// Spread baseline (Rule I.*): mean of a non-slotted rolling window of recent
+    /// spread readings (see <see cref="SpreadHistoryStore"/> and open-questions.md
+    /// for why this deviates from the spec's same-slot-median definition).
     /// </summary>
     public MarketQualitySnapshot BuildQualitySnapshot(double absoluteSpreadCap)
     {
@@ -170,11 +175,10 @@ public sealed class CTraderSnapshotBuilder
 
         double currentSpread = _robot.Symbol.Spread;
 
-        // Spread baseline uses the same same-slot-median approach as volume, on recent spread.
-        // cAlgo does not retain historical spread series by default, so this uses a simple
-        // rolling estimate seeded from current spread until a real historical spread feed
-        // is wired in. See open-questions in README — this is a known simplification.
-        double spreadBaseline = currentSpread;
+        // Rolling (non-slotted) spread baseline — replaces the previous
+        // "spreadBaseline = currentSpread" no-op fallback. See SpreadHistoryStore
+        // and docs/open-questions.md for the documented deviation from spec section 10.
+        var (spreadBaseline, spreadValidObservations) = _spreadHistory.RecordAndGetBaseline(currentSpread);
 
         return new MarketQualitySnapshot
         {
@@ -183,6 +187,7 @@ public sealed class CTraderSnapshotBuilder
             VolumeValidObservations = sameSlotVolumes.Count,
             CurrentSpread = currentSpread,
             SpreadBaseline = spreadBaseline,
+            SpreadValidObservations = spreadValidObservations,
             AbsoluteSpreadCap = absoluteSpreadCap
         };
     }
