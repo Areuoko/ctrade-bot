@@ -1164,3 +1164,88 @@
 - **ReasonCode:** N/A
 - **Source:** §29
 - **Status:** Proposed
+
+---
+
+## AB — Trend Continuation / Breakout Signal
+
+> Second, independent entry strategy alongside the Pullback signal (section G). Covers
+> sustained trend moves that never produce a genuine pullback into EMA20, which the
+> Pullback strategy (by design) rejects. Not part of `cleanpull_m15_pro_v2_0.md` —
+> agreed in a later design session; letters A–Z and T were already assigned, so this
+> follows the `AA` precedent of a two-letter section id. No rule below may be
+> implemented until its Status changes to `Approved`, per this document's own legend.
+
+### AB.1 — BreakoutPrerequisite
+
+- **Inputs:** H1 trend result (E.1/E.2/E.3), Pullback signal result (G.2/G.3), symbol state
+- **Condition:** Breakout is evaluated only when H1 trend != Neutral AND the Pullback signal was rejected for this same closed M15 candle AND symbol state = READY. Breakout and Pullback never produce a position/order simultaneously — the state machine (R.1–R.3) still allows at most one pending order or open position per symbol.
+- **TF:** M15
+- **Candle:** [1]
+- **Rounding:** N/A
+- **Error:** Pullback signal accepted → Breakout is not evaluated at all
+- **ReasonCode:** N/A
+- **Source:** New (chat session) — see project-status.md
+- **Status:** Proposed
+
+### AB.2 — BreakoutTrigger
+
+- **Inputs:** `High[2..K+1], Low[2..K+1]` (M15, K = 10 closed candles before the signal candle), `Close[1]`
+- **Condition:** `BreakoutHigh = max(High[2..K+1])`; `BreakoutLow = min(Low[2..K+1])`. Buy: `Close[1] > BreakoutHigh`. Sell: `Close[1] < BreakoutLow`.
+- **TF:** M15
+- **Candle:** [1] for Close; [2] through [K+1] for the range
+- **Rounding:** N/A
+- **Error:** Insufficient closed-candle history for the K-window → no order (distinct from the trigger simply not being met, which is a normal no-signal outcome, not a data error)
+- **ReasonCode:** `REJECT_BREAKOUT_RANGE_INVALID` (insufficient history) or `REJECT_BREAKOUT_TRIGGER_NOT_MET` (Close[1] did not clear BreakoutHigh/BreakoutLow)
+- **Source:** New (chat session)
+- **Status:** Proposed
+
+### AB.3 — BreakoutConditions
+
+- **Inputs:** H1 trend (E.1/E.2), `ADX14[1], CLV, Body, ATR14[1]` (all M15)
+- **Condition:** All must be TRUE simultaneously, in addition to AB.2:
+  - Buy: H1 trend = BUY AND `ADX14[1] >= 25` AND `CLV >= 0.60` AND `Body >= 0.20 × ATR14[1]`
+  - Sell: H1 trend = SELL AND `ADX14[1] >= 25` AND `CLV <= 0.40` AND `Body >= 0.20 × ATR14[1]`
+- **TF:** M15
+- **Candle:** [1]
+- **Rounding:** Thresholds exact as stated
+- **Error:** Any input missing/NaN → FALSE (no order)
+- **ReasonCode:** `REJECT_BREAKOUT_ADX_TOO_LOW` (ADX) or `REJECT_BREAKOUT_CLV` (CLV)
+- **Source:** New (chat session)
+- **Status:** Proposed
+
+### AB.4 — ExtensionFilter
+
+- **Inputs:** `EntryPrice` (from K.1, reused), `EMA20[1]`, `ATR14[1]` (M15)
+- **Condition:** `MaxExtensionAtr = 1.00`; `ExtensionAtr = |EntryPrice − EMA20[1]| / ATR14[1]`; must satisfy `ExtensionAtr <= MaxExtensionAtr`. **Must be computed on `EntryPrice`, not `Close[1]`** — `EntryPrice` already includes the K.1 buffer above `High[1]`/below `Low[1]`, so using `Close[1]` would understate the true extension. Evaluation order: compute `EntryPrice` (K.1) first, then apply this check — the reverse of the Pullback ordering in section G, where the distance check precedes Entry calculation.
+- **TF:** M15
+- **Candle:** [1]
+- **Rounding:** N/A
+- **Error:** `ATR14[1] <= 0` or NaN → reject (data invalid)
+- **ReasonCode:** `REJECT_BREAKOUT_EXTENSION`
+- **Source:** New (chat session)
+- **Status:** Proposed
+
+### AB.5 — BreakoutVolumeFilter
+
+- **Inputs:** `TickVolume[1]`, `VolumeBaseline` (from H.1, unchanged)
+- **Condition:** `BreakoutVolumeMultiplier = 1.25` (vs. `1.10` for Pullback in H.2); `TickVolume[1] >= 1.25 × VolumeBaseline`. Baseline computation and minimum-observations rule are unchanged from H.1.
+- **TF:** M15
+- **Candle:** [1]
+- **Rounding:** N/A
+- **Error:** Baseline uncomputable (per H.1) → no order
+- **ReasonCode:** `REJECT_BREAKOUT_VOLUME`
+- **Source:** New (chat session)
+- **Status:** Proposed
+
+### AB.6 — BreakoutOrderConstruction
+
+- **Inputs:** Swing selection (J.1–J.3), stop-distance bounds (J.5, EURUSD 0.80–1.80 ATR, unchanged), TP model (M.1 §14.1, 2R, unchanged), expiry (K.2, unchanged)
+- **Condition:** Swing/SL, TP, expiry, and stop-distance bounds are reused from the Pullback rules without modification. Order label MUST be `"CleanPullM15Pro_Breakout"` (distinct from the Pullback strategy's `"CleanPullM15Pro"` label) for broker-report and log traceability. Per-trade risk is `0.15% × Equity` (half of O.1's 0.30%) until confirmed in the Demo Forward Test phase (Y.1 Phase 3); may only be raised to match O.1 after that confirmation, per the no-increase-on-profit rule (Y.2).
+- **TF:** M15
+- **Candle:** N/A
+- **Rounding:** Same as J.4/K.1/M.1
+- **Error:** Same as J.5/J.6 (out of bounds or broker-limit violation → reject, not resized)
+- **ReasonCode:** `REJECT_STOP_TOO_WIDE`, `REJECT_STOP_TOO_NARROW`, `REJECT_STOP_LEVEL`, `REJECT_NO_SWING` (all reused from J.*)
+- **Source:** New (chat session)
+- **Status:** Proposed

@@ -133,5 +133,29 @@ public enum ReasonCode
     CancelledNews = 163,
 
     /// <summary>Position closed before news window.</summary>
-    ClosedPreNews = 164
+    ClosedPreNews = 164,
+
+    // --- Breakout strategy (spec section AB) — added alongside Pullback's existing codes above.
+    // New group starting at 170 so none of the existing numeric values above are shifted.
+
+    /// <summary>AB.2 — Insufficient closed-candle history for the K=10 breakout range window.</summary>
+    RejectBreakoutRangeInvalid = 170,
+
+    /// <summary>
+    /// AB.2 — Breakout trigger not met (Close[1] did not clear the K-candle high/low).
+    /// Normal "no signal" outcome, not a data error.
+    /// </summary>
+    RejectBreakoutTriggerNotMet = 171,
+
+    /// <summary>AB.3 — ADX14[1] below the Breakout-specific minimum (25).</summary>
+    RejectBreakoutAdxTooLow = 172,
+
+    /// <summary>AB.3 — CLV outside the Breakout-specific threshold (&gt;=0.60 buy / &lt;=0.40 sell).</summary>
+    RejectBreakoutClv = 173,
+
+    /// <summary>AB.4 — EntryPrice too far from EMA20[1] relative to ATR14[1] (extension filter).</summary>
+    RejectBreakoutExtension = 174,
+
+    /// <summary>AB.5 — Tick volume below the Breakout-specific baseline multiplier (1.25×).</summary>
+    RejectBreakoutVolume = 175
 }
