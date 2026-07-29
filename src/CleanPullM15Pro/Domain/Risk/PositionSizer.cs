@@ -4,17 +4,29 @@ using CleanPullM15Pro.Domain.Market;
 namespace CleanPullM15Pro.Domain.Risk;
 
 /// <summary>
-/// Position sizing. Rules L.1–L.5.
+/// Position sizing. Rules L.1–L.5, AB.6.
 /// </summary>
 public static class PositionSizer
 {
-    private const double RiskPerTradePct = 0.003; // 0.30%
+    private const double RiskPerTradePct = 0.003; // 0.30% (Pullback default, Rule O.1)
+
+    /// <summary>AB.6 — Breakout strategy's reduced per-trade risk percentage (half of Pullback's O.1), pending Demo Forward Test confirmation.</summary>
+    public const double BreakoutRiskPerTradePct = 0.0015; // 0.15%
 
     /// <summary>
-    /// L.1 — Trade risk money = Equity × 0.30%.
+    /// L.1 — Trade risk money = Equity × 0.30% (Pullback strategy default).
     /// </summary>
     public static double ComputeTradeRiskMoney(double equity)
-        => equity * RiskPerTradePct;
+        => ComputeTradeRiskMoney(equity, RiskPerTradePct);
+
+    /// <summary>
+    /// L.1/AB.6 — Trade risk money = Equity × riskPct. Overload allowing a strategy-specific
+    /// risk percentage (e.g. <see cref="BreakoutRiskPerTradePct"/> for the Breakout strategy).
+    /// </summary>
+    /// <param name="equity">Current account equity.</param>
+    /// <param name="riskPct">Risk percentage to apply (e.g. 0.003 for 0.30%).</param>
+    public static double ComputeTradeRiskMoney(double equity, double riskPct)
+        => equity * riskPct;
 
     /// <summary>
     /// L.2 dependency — Loss per lot if SL is hit, including a conservative estimate

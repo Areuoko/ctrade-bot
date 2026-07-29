@@ -37,6 +37,12 @@ public sealed class SymbolEvaluationConfig
 /// intentionally omitted — this build is scoped to a single symbol (EURUSD)
 /// by explicit decision; re-add PortfolioRiskGuard calls before adding a
 /// second correlated symbol.
+///
+/// Two independent entry strategies are evaluated per bar: Pullback (spec section
+/// G) first, then — only if Pullback is rejected for that candle — Trend
+/// Continuation / Breakout (spec section AB, rule AB.1). They never produce a
+/// simultaneous order/position on the same symbol; the existing single-order-
+/// per-symbol state machine (R.1–R.3) is untouched and still enforces that.
 /// </summary>
 public sealed class BarEvaluationOrchestrator
 {
@@ -48,6 +54,11 @@ public sealed class BarEvaluationOrchestrator
     private readonly ILogPort _log;
     private readonly SymbolEvaluationConfig _config;
     private readonly SymbolStateMachine _stateMachine;
+
+    // AB.6 — distinct broker/log labels so Pullback and Breakout trades are
+    // traceable separately in broker reports and logs.
+    private const string PullbackLabel = "CleanPullM15Pro";
+    private const string BreakoutLabel = "CleanPullM15Pro_Breakout";
 
     /// <summary>
     /// Constructs the orchestrator with its execution, market, clock, news, state-store,
@@ -84,8 +95,9 @@ public sealed class BarEvaluationOrchestrator
     /// <summary>
     /// Runs one full M15 bar-close evaluation cycle in spec decision order (section 20):
     /// validate data/clock → risk locks → state/window/news checks → H1 trend → M15
-    /// volatility → pullback signal → volume/spread → swing → entry/SL/TP → sizing →
-    /// submit → confirm. Always returns an outcome (submitted, no-signal, or rejected).
+    /// volatility → Pullback signal (falling back to Breakout, AB.1, if rejected) →
+    /// volume/spread → swing → entry/SL/TP → sizing → submit → confirm. Always returns
+    /// an outcome (submitted, no-signal, or rejected).
     /// </summary>
     /// <param name="h1">Pre-computed H1 snapshot from closed bars.</param>
     /// <param name="m15">Pre-computed M15 snapshot, including closed candles.</param>
@@ -160,14 +172,18 @@ public sealed class BarEvaluationOrchestrator
         // Step 7 — H1 trend
         var trend = SignalEvaluator.EvaluateH1Trend(h1.Ema50Bar1, h1.Ema200Bar1, h1.Ema50Bar6, h1.Atr14Bar1);
         if (trend == TradeDirection.None)
-            return Reject(symbol, ReasonCode.TrendNeutral, "H1 trend neutral");
+        {
+            string trendDiag = SignalEvaluator.DescribeH1TrendDiagnostics(
+                h1.Ema50Bar1, h1.Ema200Bar1, h1.Ema50Bar6, h1.Atr14Bar1);
+            return Reject(symbol, ReasonCode.TrendNeutral, "H1 trend neutral — " + trendDiag);
+        }
 
         // Step 8 — M15 volatility regime
         var volResult = SignalEvaluator.EvaluateVolatilityBand(m15.Atr14Bar1, m15.SmaAtr100Bar1);
         if (volResult.RejectionReason.HasValue)
             return Reject(symbol, volResult.RejectionReason.Value, "Volatility ratio outside tradeable band");
 
-        // Step 9 — Pullback/momentum signal
+        // Step 9 — Pullback signal, falling back to Breakout (AB.1) if Pullback is rejected
         if (m15.Candles.Length == 0)
             return Reject(symbol, ReasonCode.RejectDataInvalid, "No M15 candle available");
 
@@ -176,45 +192,70 @@ public sealed class BarEvaluationOrchestrator
             ? SignalEvaluator.EvaluateBuySignal(trend, signalCandle, m15.Ema20Bar1, m15.Ema50Bar1, m15.Adx14Bar1, m15.Atr14Bar1, m15.Rsi14Bar2, m15.Rsi14Bar1)
             : SignalEvaluator.EvaluateSellSignal(trend, signalCandle, m15.Ema20Bar1, m15.Ema50Bar1, m15.Adx14Bar1, m15.Atr14Bar1, m15.Rsi14Bar2, m15.Rsi14Bar1);
 
-        if (signal.RejectionReason.HasValue)
-            return Reject(symbol, signal.RejectionReason.Value, "Pullback signal conditions not met");
+        bool isBreakout = false;
 
-        // Step 10 — Volume and spread filters
+        if (signal.RejectionReason.HasValue)
+        {
+            // AB.1 — Pullback rejected for this candle; evaluate Breakout as the fallback strategy.
+            var breakoutSignal = trend == TradeDirection.Buy
+                ? TrendContinuationSignalEvaluator.EvaluateBuySignal(trend, m15.Candles, m15.Adx14Bar1, m15.Atr14Bar1)
+                : TrendContinuationSignalEvaluator.EvaluateSellSignal(trend, m15.Candles, m15.Adx14Bar1, m15.Atr14Bar1);
+
+            if (breakoutSignal.RejectionReason.HasValue)
+            {
+                string pullbackDiag = trend == TradeDirection.Buy
+                    ? SignalEvaluator.DescribeBuyDiagnostics(signalCandle, m15.Ema20Bar1, m15.Ema50Bar1, m15.Adx14Bar1, m15.Atr14Bar1, m15.Rsi14Bar2, m15.Rsi14Bar1)
+                    : SignalEvaluator.DescribeSellDiagnostics(signalCandle, m15.Ema20Bar1, m15.Ema50Bar1, m15.Adx14Bar1, m15.Atr14Bar1, m15.Rsi14Bar2, m15.Rsi14Bar1);
+                return Reject(symbol, breakoutSignal.RejectionReason.Value,
+                    "Neither Pullback nor Breakout signal conditions met — Pullback: " + pullbackDiag);
+            }
+
+            signal = breakoutSignal;
+            isBreakout = true;
+        }
+
+        // Step 10 — Volume and spread filters. Breakout uses its own baseline
+        // multiplier (AB.5, 1.25×) instead of Pullback's (H.2, 1.10×).
         if (!VolumeFilter.IsBaselineValid(quality.VolumeValidObservations))
             return Reject(symbol, ReasonCode.RejectVolumeBaseline, "Volume baseline has too few observations");
 
-        if (!VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline))
-            return Reject(symbol, ReasonCode.RejectVolume, "Tick volume below baseline threshold");
-         // Step 10 — Volume and spread filters
-if (!VolumeFilter.IsBaselineValid(quality.VolumeValidObservations))
-    return Reject(symbol, ReasonCode.RejectVolumeBaseline, "Volume baseline has too few observations");
+        bool volumePasses = isBreakout
+            ? VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline, TrendContinuationSignalEvaluator.VolumeMultiplier)
+            : VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline);
 
-if (!VolumeFilter.Passes(quality.TickVolumeBar1, quality.VolumeBaseline))
-    return Reject(symbol, ReasonCode.RejectVolume, "Tick volume below baseline threshold");
+        if (!volumePasses)
+            return Reject(symbol,
+                isBreakout ? ReasonCode.RejectBreakoutVolume : ReasonCode.RejectVolume,
+                "Tick volume below baseline threshold");
 
-// NEW — قبلاً این چک اصلاً وجود نداشت
-if (!SpreadFilter.IsBaselineValid(quality.SpreadValidObservations))
-    return Reject(symbol, ReasonCode.RejectSpreadBaseline, "Spread baseline has too few observations");
-
-if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.AbsoluteSpreadCap))
-    return Reject(symbol, ReasonCode.RejectSpread, "Spread above allowed threshold");         
+        if (!SpreadFilter.IsBaselineValid(quality.SpreadValidObservations))
+            return Reject(symbol, ReasonCode.RejectSpreadBaseline, "Spread baseline has too few observations");
 
         if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.AbsoluteSpreadCap))
             return Reject(symbol, ReasonCode.RejectSpread, "Spread above allowed threshold");
 
-        // Step 11 — Confirmed swing
+        // Step 11 — Confirmed swing (shared between strategies, AB.6)
         var swing = SwingDetector.SelectSwing(m15.Candles, signal.Direction, _config.SwingLookbackCount);
         if (!swing.Found)
             return Reject(symbol, ReasonCode.RejectNoSwing, "No confirmed swing found in lookback window");
 
-        // Step 12 — Entry, SL, TP
+        // Step 12 — Entry (shared K.1, AB.6)
         double entryPrice = signal.Direction == TradeDirection.Buy
             ? OrderEntryCalculator.ComputeBuyEntry(signalCandle.High, m15.Atr14Bar1, symbolInfo.TickSize)
             : OrderEntryCalculator.ComputeSellEntry(signalCandle.Low, m15.Atr14Bar1, symbolInfo.TickSize);
 
+        // AB.4 — Extension filter, Breakout only. Must run AFTER EntryPrice is computed
+        // (never against Close[1]) — see TrendContinuationSignalEvaluator.ValidateExtension.
+        if (isBreakout)
+        {
+            var extensionReject = TrendContinuationSignalEvaluator.ValidateExtension(entryPrice, m15.Ema20Bar1, m15.Atr14Bar1);
+            if (extensionReject.HasValue)
+                return Reject(symbol, extensionReject.Value, "Breakout entry too extended from EMA20 relative to ATR");
+        }
+
         double stopLoss = StopLossCalculator.ComputeLevel(signal.Direction, swing.Price, m15.Atr14Bar1);
 
-        // Step 13 — Stop-distance bounds
+        // Step 13 — Stop-distance bounds (shared bounds, AB.6)
         var distanceReject = StopLossCalculator.ValidateDistance(
             entryPrice, stopLoss, m15.Atr14Bar1, _config.MinStopAtr, _config.MaxStopAtr);
         if (distanceReject.HasValue)
@@ -229,8 +270,13 @@ if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.
         if (brokerLimitReject.HasValue)
             return Reject(symbol, brokerLimitReject.Value, "SL violates broker StopLevel/FreezeLevel");
 
-        // Step 14 — Position size (single-symbol; no basket/USD exposure step here — see class doc)
-        double tradeRiskMoney = PositionSizer.ComputeTradeRiskMoney(account.Equity);
+        // Step 14 — Position size (single-symbol; no basket/USD exposure step here — see class doc).
+        // AB.6 — Breakout uses a reduced per-trade risk percentage (0.15% vs. Pullback's 0.30%)
+        // until confirmed in the Demo Forward Test phase.
+        double tradeRiskMoney = isBreakout
+            ? PositionSizer.ComputeTradeRiskMoney(account.Equity, PositionSizer.BreakoutRiskPerTradePct)
+            : PositionSizer.ComputeTradeRiskMoney(account.Equity);
+
         double lossPerLotAtSl = PositionSizer.ComputeLossPerLotAtSL(
             entryPrice, stopLoss, symbolInfo.TickSize, symbolInfo.TickValue,
             _config.CommissionPerLotRoundTurn, _config.ConservativeSlippagePriceUnits);
@@ -256,12 +302,13 @@ if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.
         if (!PortfolioRiskGuard.PassesReservedRisk(account.TotalReservedRisk + thisTradeRisk, account.Equity))
             return Reject(symbol, ReasonCode.RejectReservedRisk, "Total reserved risk cap exceeded");
 
-        // Take-profit
+        // Take-profit (shared M.1, AB.6)
         double takeProfit = TradeManagementCalculator.ComputeTakeProfit(
             signal.Direction, entryPrice, stopLoss, symbolInfo.TickSize);
 
         var expiry = OrderEntryCalculator.ComputeExpiry(barCloseTimeUtc);
 
+        // AB.6 — distinct order label per strategy for broker-report and log traceability.
         var orderRequest = new PendingOrderRequest
         {
             SymbolName = symbol,
@@ -270,7 +317,8 @@ if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.
             StopLoss = stopLoss,
             TakeProfit = takeProfit,
             Volume = roundedVolumeResult.Volume,
-            ExpiryUtc = expiry
+            ExpiryUtc = expiry,
+            Label = isBreakout ? BreakoutLabel : PullbackLabel
         };
 
         // Step 16/17 — Submit and confirm
@@ -291,7 +339,7 @@ if (!SpreadFilter.Passes(quality.CurrentSpread, quality.SpreadBaseline, quality.
         // Step 18 — Persist state and log
         _stateStore.SetState(symbol, BotState.OrderPending);
         _log.LogDecision(symbol, signal.Direction, null,
-            $"Order submitted: entry={entryPrice}, sl={stopLoss}, tp={takeProfit}, vol={roundedVolumeResult.Volume}");
+            $"Order submitted ({(isBreakout ? "Breakout" : "Pullback")}): entry={entryPrice}, sl={stopLoss}, tp={takeProfit}, vol={roundedVolumeResult.Volume}");
 
         return EvaluationOutcome.Submitted(signal.Direction, orderRequest);
     }
