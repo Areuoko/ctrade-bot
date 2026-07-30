@@ -275,13 +275,19 @@
             <summary>Maximum slippage in price units allowed for the trade to proceed.</summary>
         </member>
         <member name="T:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator">
-            <summary>
-            Orchestrates one full evaluation cycle on M15 bar close, following the
-            decision order in spec section 20. Steps 15 (basket/USD exposure) are
-            intentionally omitted — this build is scoped to a single symbol (EURUSD)
-            by explicit decision; re-add PortfolioRiskGuard calls before adding a
-            second correlated symbol.
-            </summary>
+             <summary>
+             Orchestrates one full evaluation cycle on M15 bar close, following the
+             decision order in spec section 20. Steps 15 (basket/USD exposure) are
+             intentionally omitted — this build is scoped to a single symbol (EURUSD)
+             by explicit decision; re-add PortfolioRiskGuard calls before adding a
+             second correlated symbol.
+            
+             Two independent entry strategies are evaluated per bar: Pullback (spec section
+             G) first, then — only if Pullback is rejected for that candle — Trend
+             Continuation / Breakout (spec section AB, rule AB.1). They never produce a
+             simultaneous order/position on the same symbol; the existing single-order-
+             per-symbol state machine (R.1–R.3) is untouched and still enforces that.
+             </summary>
         </member>
         <member name="M:CleanPullM15Pro.Application.Orchestration.BarEvaluationOrchestrator.#ctor(CleanPullM15Pro.Application.Ports.IExecutionPort,CleanPullM15Pro.Application.Ports.ISymbolPort,CleanPullM15Pro.Application.Ports.IClockPort,CleanPullM15Pro.Application.Ports.INewsCalendarPort,CleanPullM15Pro.Application.Ports.IStateStorePort,CleanPullM15Pro.Application.Ports.ILogPort,CleanPullM15Pro.Application.Orchestration.SymbolEvaluationConfig,CleanPullM15Pro.Application.StateMachine.SymbolStateMachine)">
             <summary>
@@ -301,8 +307,9 @@
             <summary>
             Runs one full M15 bar-close evaluation cycle in spec decision order (section 20):
             validate data/clock → risk locks → state/window/news checks → H1 trend → M15
-            volatility → pullback signal → volume/spread → swing → entry/SL/TP → sizing →
-            submit → confirm. Always returns an outcome (submitted, no-signal, or rejected).
+            volatility → Pullback signal (falling back to Breakout, AB.1, if rejected) →
+            volume/spread → swing → entry/SL/TP → sizing → submit → confirm. Always returns
+            an outcome (submitted, no-signal, or rejected).
             </summary>
             <param name="h1">Pre-computed H1 snapshot from closed bars.</param>
             <param name="m15">Pre-computed M15 snapshot, including closed candles.</param>
@@ -748,6 +755,27 @@
         <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.ClosedPreNews">
             <summary>Position closed before news window.</summary>
         </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutRangeInvalid">
+            <summary>AB.2 — Insufficient closed-candle history for the K=10 breakout range window.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutTriggerNotMet">
+            <summary>
+            AB.2 — Breakout trigger not met (Close[1] did not clear the K-candle high/low).
+            Normal "no signal" outcome, not a data error.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutAdxTooLow">
+            <summary>AB.3 — ADX14[1] below the Breakout-specific minimum (25).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutClv">
+            <summary>AB.3 — CLV outside the Breakout-specific threshold (&gt;=0.60 buy / &lt;=0.40 sell).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutExtension">
+            <summary>AB.4 — EntryPrice too far from EMA20[1] relative to ATR14[1] (extension filter).</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutVolume">
+            <summary>AB.5 — Tick volume below the Breakout-specific baseline multiplier (1.25×).</summary>
+        </member>
         <member name="T:CleanPullM15Pro.Domain.Market.SymbolInfo">
             <summary>
             Symbol metadata required at startup. Rule A.1.
@@ -1030,13 +1058,24 @@
         </member>
         <member name="T:CleanPullM15Pro.Domain.Risk.PositionSizer">
             <summary>
-            Position sizing. Rules L.1–L.5.
+            Position sizing. Rules L.1–L.5, AB.6.
             </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Risk.PositionSizer.BreakoutRiskPerTradePct">
+            <summary>AB.6 — Breakout strategy's reduced per-trade risk percentage (half of Pullback's O.1), pending Demo Forward Test confirmation.</summary>
         </member>
         <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeTradeRiskMoney(System.Double)">
             <summary>
-            L.1 — Trade risk money = Equity × 0.30%.
+            L.1 — Trade risk money = Equity × 0.30% (Pullback strategy default).
             </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeTradeRiskMoney(System.Double,System.Double)">
+            <summary>
+            L.1/AB.6 — Trade risk money = Equity × riskPct. Overload allowing a strategy-specific
+            risk percentage (e.g. <see cref="F:CleanPullM15Pro.Domain.Risk.PositionSizer.BreakoutRiskPerTradePct"/> for the Breakout strategy).
+            </summary>
+            <param name="equity">Current account equity.</param>
+            <param name="riskPct">Risk percentage to apply (e.g. 0.003 for 0.30%).</param>
         </member>
         <member name="M:CleanPullM15Pro.Domain.Risk.PositionSizer.ComputeLossPerLotAtSL(System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
             <summary>
@@ -1142,7 +1181,7 @@
         </member>
         <member name="T:CleanPullM15Pro.Domain.Risk.VolumeFilter">
             <summary>
-            Volume filter. Rules H.1, H.2.
+            Volume filter. Rules H.1, H.2, AB.5.
             Baseline must be computed externally (infrastructure).
             </summary>
         </member>
@@ -1154,8 +1193,17 @@
         </member>
         <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.Passes(System.Int64,System.Double)">
             <summary>
-            H.2 — Compares tick volume against baseline.
+            H.2 — Compares tick volume against the pullback-strategy baseline (1.10×).
             </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Risk.VolumeFilter.Passes(System.Int64,System.Double,System.Double)">
+            <summary>
+            AB.5 — Compares tick volume against baseline using a caller-supplied multiplier
+            (e.g. 1.25 for the Breakout strategy). Same NaN/non-positive-baseline guard as H.2.
+            </summary>
+            <param name="tickVolume">Tick volume of the signal candle.</param>
+            <param name="volumeBaseline">Pre-computed baseline (median over the trailing window).</param>
+            <param name="multiplier">Strategy-specific multiplier applied to the baseline.</param>
         </member>
         <member name="T:CleanPullM15Pro.Domain.Signals.SignalEvaluator">
             <summary>
@@ -1189,6 +1237,25 @@
             Returns first failing condition as rejection.
             </summary>
         </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.DescribeH1TrendDiagnostics(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Diagnostic-only helper (not used in the pass/fail decision itself).
+            Formats the H1 trend inputs so a TrendNeutral rejection shows exactly how
+            far the ATR-normalized EMA distance was from the ±0.25 threshold (Rule E.1/E.2).
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.DescribeBuyDiagnostics(CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Diagnostic-only helper. Formats every buy-signal input against its threshold
+            (spec section 8.1) so a rejection shows exactly which condition failed and by how much.
+            </summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.DescribeSellDiagnostics(CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Diagnostic-only helper. Mirror of <see cref="M:CleanPullM15Pro.Domain.Signals.SignalEvaluator.DescribeBuyDiagnostics(CleanPullM15Pro.Domain.Market.Candle,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)"/> for the
+            sell-signal conditions (spec section 8.2).
+            </summary>
+        </member>
         <member name="T:CleanPullM15Pro.Domain.Signals.SignalResult">
             <summary>
             Signal evaluation outcome. Direction = None means no signal; ReasonCode explains why.
@@ -1206,6 +1273,60 @@
         </member>
         <member name="M:CleanPullM15Pro.Domain.Signals.SignalResult.Rejected(CleanPullM15Pro.Domain.Market.ReasonCode)">
             <summary>Creates a rejection result (Direction = None).</summary>
+        </member>
+        <member name="T:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator">
+            <summary>
+            Pure domain evaluator for the Trend Continuation / Breakout strategy (spec section AB).
+            Independent of <see cref="T:CleanPullM15Pro.Domain.Signals.SignalEvaluator"/> (Pullback) — no shared state, no cAlgo.API
+            reference. Rules AB.2–AB.4. AB.5 (volume) is handled by
+            <see cref="T:CleanPullM15Pro.Domain.Risk.VolumeFilter"/>'s 3-argument overload; AB.6 (swing/SL/TP/expiry/label/
+            risk%) is handled by existing Pullback calculators plus orchestrator-level config —
+            nothing here duplicates that.
+            </summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.BreakoutLookback">
+            <summary>AB.2 — K: number of closed M15 candles before the signal candle used for the breakout range.</summary>
+        </member>
+        <member name="F:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.VolumeMultiplier">
+            <summary>AB.5 — Breakout-specific volume baseline multiplier, passed to VolumeFilter.Passes' 3-arg overload.</summary>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.EvaluateBuySignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle[],System.Double,System.Double)">
+            <summary>
+            AB.2/AB.3 — Evaluate the M15 Breakout buy signal. Caller must supply at least
+            <see cref="F:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.BreakoutLookback"/> + 1 closed candles, index 0 = signal candle ([1] in
+            spec terms), indices 1..10 = candles [2]..[11] used for the range. Only call this
+            when the Pullback buy signal (SignalEvaluator.EvaluateBuySignal) was already rejected
+            for the same candle (AB.1) — this method does not check that itself.
+            </summary>
+            <param name="h1Trend">H1 trend result (must be Buy for this signal to fire).</param>
+            <param name="candles">Closed M15 candles, newest first; index 0 is the signal candle.</param>
+            <param name="adx14Bar1">M15 ADX(14) at the signal candle.</param>
+            <param name="atr14Bar1">M15 ATR(14) at the signal candle.</param>
+            <returns>Buy on success, or a rejection with the first failing AB.2/AB.3 condition.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.EvaluateSellSignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle[],System.Double,System.Double)">
+            <summary>
+            AB.2/AB.3 — Evaluate the M15 Breakout sell signal. Mirror of
+            <see cref="M:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.EvaluateBuySignal(CleanPullM15Pro.Domain.Market.TradeDirection,CleanPullM15Pro.Domain.Market.Candle[],System.Double,System.Double)"/>; see its documentation for candle-array conventions.
+            </summary>
+            <param name="h1Trend">H1 trend result (must be Sell for this signal to fire).</param>
+            <param name="candles">Closed M15 candles, newest first; index 0 is the signal candle.</param>
+            <param name="adx14Bar1">M15 ADX(14) at the signal candle.</param>
+            <param name="atr14Bar1">M15 ATR(14) at the signal candle.</param>
+            <returns>Sell on success, or a rejection with the first failing AB.2/AB.3 condition.</returns>
+        </member>
+        <member name="M:CleanPullM15Pro.Domain.Signals.TrendContinuationSignalEvaluator.ValidateExtension(System.Double,System.Double,System.Double)">
+            <summary>
+            AB.4 — Extension filter. MUST be called with <paramref name="entryPrice"/> already
+            computed via <c>OrderEntryCalculator.ComputeBuyEntry</c>/<c>ComputeSellEntry</c> —
+            never with Close[1] — because the entry price already includes the K.1 buffer beyond
+            the signal candle's high/low. Evaluation order is therefore: compute EntryPrice first,
+            then call this — the reverse of the Pullback ordering in section G.
+            </summary>
+            <param name="entryPrice">Computed pending-order entry price (K.1).</param>
+            <param name="ema20Bar1">M15 EMA(20) at the signal candle.</param>
+            <param name="atr14Bar1">M15 ATR(14) at the signal candle.</param>
+            <returns>Null if within the allowed extension; otherwise <see cref="F:CleanPullM15Pro.Domain.Market.ReasonCode.RejectBreakoutExtension"/> (or RejectDataInvalid on bad input).</returns>
         </member>
         <member name="T:CleanPullM15Pro.Host.CleanPullM15ProBot">
             <summary>
@@ -1470,13 +1591,19 @@
             
              Deliberate deviation from spec section 10's exact definition (median of the same
              15-minute slot over the previous 20 trading days): a single non-slotted rolling
-             window of the most recent samples is used instead. Recorded as an accepted
-             research-parameter deviation (spec section 29 classifies spread-baseline method as
-             "پژوهشی", not "ثابت منطقی") — see open-questions.md. Slotting by time-of-day suits
-             tick volume (which varies sharply by session) but adds needless latency here:
-             EURUSD spread is comparatively stable through the day, and a same-slot-only
-             baseline would take ~20 trading days per slot to validate, stalling entries
-             through most of the Demo Forward Test phase.
+             window of the most recent samples is used instead (spec section 29 classifies
+             spread-baseline method as "پژوهشی", not "ثابت منطقی" — see open-questions.md).
+            
+             Revision (pre-Demo-Forward-Test): window enlarged 50 → 200 samples and the
+             aggregate switched from mean to median. Rationale:
+             - EURUSD spread readings on a live feed occasionally spike (thin-liquidity
+               ticks, momentary requotes) well above the typical value; a mean lets a
+               handful of spikes drag the baseline up, which then lets a genuinely wide
+               spread pass the 1.5x-baseline check. Median is robust to that.
+             - 200 samples (vs 50) approximates a longer historical window without
+               requiring same-time-of-day slotting, trading off some recency for a more
+               stable baseline — still far short of spec's literal "20 trading days,
+               same 15-min slot" definition, which remains a known, accepted gap.
              </summary>
         </member>
         <member name="M:CleanPullM15Pro.Infrastructure.CTrader.MarketData.SpreadHistoryStore.#ctor(cAlgo.API.Robot,System.String)">
@@ -1492,7 +1619,7 @@
             generate more ticks rather than toward "typical spread per bar".
             </summary>
             <param name="currentSpread">Current spread reading in price units.</param>
-            <returns>(Baseline, ValidObservations). Baseline is the mean of stored samples
+            <returns>(Baseline, ValidObservations). Baseline is the median of stored samples
             after recording this one; 0 if none yet. Caller must check validity via
             <see cref="M:CleanPullM15Pro.Domain.Risk.SpreadFilter.IsBaselineValid(System.Int32)"/> before trusting Baseline.</returns>
         </member>

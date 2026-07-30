@@ -198,4 +198,67 @@ public static class SignalEvaluator
 
         return SignalResult.Of(TradeDirection.Sell);
     }
+
+    /// <summary>
+    /// Diagnostic-only helper (not used in the pass/fail decision itself).
+    /// Formats the H1 trend inputs so a TrendNeutral rejection shows exactly how
+    /// far the ATR-normalized EMA distance was from the ±0.25 threshold (Rule E.1/E.2).
+    /// </summary>
+    public static string DescribeH1TrendDiagnostics(
+        double ema50Bar1, double ema200Bar1, double ema50Bar6, double atr14Bar1)
+    {
+        if (double.IsNaN(ema50Bar1) || double.IsNaN(ema200Bar1) ||
+            double.IsNaN(ema50Bar6) || double.IsNaN(atr14Bar1) || atr14Bar1 <= 0)
+            return "invalid H1 indicator input (NaN or atr14Bar1<=0) — cannot compute ATR-relative distance";
+
+        double diffAtr = (ema50Bar1 - ema200Bar1) / atr14Bar1;
+
+        return $"ema50={ema50Bar1:F5} ema200={ema200Bar1:F5} ema50Bar6={ema50Bar6:F5} atr14={atr14Bar1:F5} " +
+               $"(ema50-ema200)/atr={diffAtr:F3} [need >= +0.25 for BUY, <= -0.25 for SELL] " +
+               $"slopeVsBar6={(ema50Bar1 - ema50Bar6):F5}";
+    }
+
+    /// <summary>
+    /// Diagnostic-only helper. Formats every buy-signal input against its threshold
+    /// (spec section 8.1) so a rejection shows exactly which condition failed and by how much.
+    /// </summary>
+    public static string DescribeBuyDiagnostics(
+        Candle m15Candle, double ema20Bar1, double ema50Bar1,
+        double adx14Bar1, double atr14Bar1, double rsi14Bar2, double rsi14Bar1)
+    {
+        if (double.IsNaN(atr14Bar1) || atr14Bar1 <= 0)
+            return "atr14Bar1 invalid — cannot compute ATR-relative distances";
+
+        double lowDistAtr = (m15Candle.Low - ema20Bar1) / atr14Bar1;   // need <= +0.10 and >= -0.35
+        double bodyAtr = m15Candle.Body / atr14Bar1;                   // need >= 0.20
+
+        return $"ema20={ema20Bar1:F5} ema50={ema50Bar1:F5} ema20>ema50={ema20Bar1 > ema50Bar1} " +
+               $"adx={adx14Bar1:F2}(need>=20) " +
+               $"low={m15Candle.Low:F5} close={m15Candle.Close:F5} close>=ema20={m15Candle.Close >= ema20Bar1} " +
+               $"(low-ema20)/atr={lowDistAtr:F3}[need<=0.10 & >=-0.35] " +
+               $"clv={m15Candle.Clv:F3}(need>=0.65) bodyAtr={bodyAtr:F3}(need>=0.20) " +
+               $"rsi[2]={rsi14Bar2:F2}(need<=50) rsi[1]={rsi14Bar1:F2}(need>50)";
+    }
+
+    /// <summary>
+    /// Diagnostic-only helper. Mirror of <see cref="DescribeBuyDiagnostics"/> for the
+    /// sell-signal conditions (spec section 8.2).
+    /// </summary>
+    public static string DescribeSellDiagnostics(
+        Candle m15Candle, double ema20Bar1, double ema50Bar1,
+        double adx14Bar1, double atr14Bar1, double rsi14Bar2, double rsi14Bar1)
+    {
+        if (double.IsNaN(atr14Bar1) || atr14Bar1 <= 0)
+            return "atr14Bar1 invalid — cannot compute ATR-relative distances";
+
+        double highDistAtr = (m15Candle.High - ema20Bar1) / atr14Bar1; // need >= -0.10 and <= +0.35
+        double bodyAtr = m15Candle.Body / atr14Bar1;                    // need >= 0.20
+
+        return $"ema20={ema20Bar1:F5} ema50={ema50Bar1:F5} ema20<ema50={ema20Bar1 < ema50Bar1} " +
+               $"adx={adx14Bar1:F2}(need>=20) " +
+               $"high={m15Candle.High:F5} close={m15Candle.Close:F5} close<=ema20={m15Candle.Close <= ema20Bar1} " +
+               $"(high-ema20)/atr={highDistAtr:F3}[need>=-0.10 & <=0.35] " +
+               $"clv={m15Candle.Clv:F3}(need<=0.35) bodyAtr={bodyAtr:F3}(need>=0.20) " +
+               $"rsi[2]={rsi14Bar2:F2}(need>=50) rsi[1]={rsi14Bar1:F2}(need<50)";
+    }
 }

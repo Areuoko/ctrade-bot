@@ -14,17 +14,23 @@ namespace CleanPullM15Pro.Infrastructure.CTrader.MarketData;
 ///
 /// Deliberate deviation from spec section 10's exact definition (median of the same
 /// 15-minute slot over the previous 20 trading days): a single non-slotted rolling
-/// window of the most recent samples is used instead. Recorded as an accepted
-/// research-parameter deviation (spec section 29 classifies spread-baseline method as
-/// "پژوهشی", not "ثابت منطقی") — see open-questions.md. Slotting by time-of-day suits
-/// tick volume (which varies sharply by session) but adds needless latency here:
-/// EURUSD spread is comparatively stable through the day, and a same-slot-only
-/// baseline would take ~20 trading days per slot to validate, stalling entries
-/// through most of the Demo Forward Test phase.
+/// window of the most recent samples is used instead (spec section 29 classifies
+/// spread-baseline method as "پژوهشی", not "ثابت منطقی" — see open-questions.md).
+///
+/// Revision (pre-Demo-Forward-Test): window enlarged 50 → 200 samples and the
+/// aggregate switched from mean to median. Rationale:
+/// - EURUSD spread readings on a live feed occasionally spike (thin-liquidity
+///   ticks, momentary requotes) well above the typical value; a mean lets a
+///   handful of spikes drag the baseline up, which then lets a genuinely wide
+///   spread pass the 1.5x-baseline check. Median is robust to that.
+/// - 200 samples (vs 50) approximates a longer historical window without
+///   requiring same-time-of-day slotting, trading off some recency for a more
+///   stable baseline — still far short of spec's literal "20 trading days,
+///   same 15-min slot" definition, which remains a known, accepted gap.
 /// </summary>
 public sealed class SpreadHistoryStore
 {
-    private const int MaxSamples = 50;
+    private const int MaxSamples = 200;
     private const string Key = "SpreadHistory";
 
     private readonly Robot _robot;
@@ -46,7 +52,7 @@ public sealed class SpreadHistoryStore
     /// generate more ticks rather than toward "typical spread per bar".
     /// </summary>
     /// <param name="currentSpread">Current spread reading in price units.</param>
-    /// <returns>(Baseline, ValidObservations). Baseline is the mean of stored samples
+    /// <returns>(Baseline, ValidObservations). Baseline is the median of stored samples
     /// after recording this one; 0 if none yet. Caller must check validity via
     /// <see cref="Domain.Risk.SpreadFilter.IsBaselineValid"/> before trusting Baseline.</returns>
     public (double Baseline, int ValidObservations) RecordAndGetBaseline(double currentSpread)
@@ -59,7 +65,7 @@ public sealed class SpreadHistoryStore
 
         SaveSamples(samples);
 
-        double baseline = samples.Count > 0 ? samples.Average() : 0;
+        double baseline = samples.Count > 0 ? Median(samples) : 0;
         return (baseline, samples.Count);
     }
 
@@ -82,6 +88,14 @@ public sealed class SpreadHistoryStore
     {
         string joined = string.Join(",", samples.Select(v => v.ToString(CultureInfo.InvariantCulture)));
         _robot.LocalStorage.SetString(_prefix + Key, joined);
+    }
+
+    private static double Median(List<double> values)
+    {
+        var sorted = values.OrderBy(v => v).ToList();
+        int n = sorted.Count;
+        if (n == 0) return 0;
+        return n % 2 == 1 ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
     }
 
     private static string SanitizeKeyPart(string value)
