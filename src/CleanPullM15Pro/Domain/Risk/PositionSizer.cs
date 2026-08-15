@@ -5,16 +5,30 @@ namespace CleanPullM15Pro.Domain.Risk;
 
 /// <summary>
 /// Position sizing. Rules L.1–L.5, AB.6.
+///
+/// RISK REVISION (documented intentional deviation from spec section 16.1's base
+/// values of 0.30% / 0.15%): per-trade risk raised to 1.00% (Pullback) / 0.50%
+/// (Breakout) — roughly a 3.33x scale-up — for the current research/testing phase,
+/// while sample sizes are still small (see docs/open-questions.md for the full
+/// rationale and the trade-off being made). This is a research parameter, not a
+/// "ثابت منطقی" (spec section 29) — it must be re-evaluated before any live-account
+/// use, and should trend back down toward the original conservative values as
+/// Demo Forward Test data accumulates.
 /// </summary>
 public static class PositionSizer
 {
-    private const double RiskPerTradePct = 0.003; // 0.30% (Pullback default, Rule O.1)
-
-    /// <summary>AB.6 — Breakout strategy's reduced per-trade risk percentage (half of Pullback's O.1), pending Demo Forward Test confirmation.</summary>
-    public const double BreakoutRiskPerTradePct = 0.0015; // 0.15%
+    // Revised from 0.003 (0.30%) — see class-level doc comment and open-questions.md.
+    private const double RiskPerTradePct = 0.01; // 1.00% (Pullback strategy default)
 
     /// <summary>
-    /// L.1 — Trade risk money = Equity × 0.30% (Pullback strategy default).
+    /// AB.6 — Breakout strategy's reduced per-trade risk percentage (half of Pullback's
+    /// current value), pending Demo Forward Test confirmation. Revised from 0.0015 (0.15%)
+    /// alongside the Pullback risk revision above.
+    /// </summary>
+    public const double BreakoutRiskPerTradePct = 0.005; // 0.50%
+
+    /// <summary>
+    /// L.1 — Trade risk money = Equity × 1.00% (Pullback strategy default).
     /// </summary>
     public static double ComputeTradeRiskMoney(double equity)
         => ComputeTradeRiskMoney(equity, RiskPerTradePct);
@@ -24,7 +38,7 @@ public static class PositionSizer
     /// risk percentage (e.g. <see cref="BreakoutRiskPerTradePct"/> for the Breakout strategy).
     /// </summary>
     /// <param name="equity">Current account equity.</param>
-    /// <param name="riskPct">Risk percentage to apply (e.g. 0.003 for 0.30%).</param>
+    /// <param name="riskPct">Risk percentage to apply (e.g. 0.01 for 1.00%).</param>
     public static double ComputeTradeRiskMoney(double equity, double riskPct)
         => equity * riskPct;
 

@@ -4,13 +4,26 @@ namespace CleanPullM15Pro.Domain.Risk;
 
 /// <summary>
 /// Portfolio risk guards. Rules O.1–O.4.
+///
+/// RISK REVISION: <see cref="MaxReservedRiskPct"/> was scaled up alongside the
+/// per-trade risk revision in <see cref="PositionSizer"/>, keeping the same 2x
+/// ratio to per-trade risk that the original spec used (0.60% / 0.30% = 2x).
+/// <see cref="RiskPerTradePct"/> below is retained only for <see cref="RiskPerTrade"/>
+/// (O.1, currently unused by the orchestrator directly — sizing goes through
+/// <see cref="PositionSizer"/> instead) and is NOT the authoritative per-trade risk
+/// value; see <see cref="PositionSizer"/> for the actual value used in sizing.
+/// <see cref="MetalBasketPct"/> and <see cref="UsdExposurePct"/> are single-symbol
+/// (EURUSD-only) build placeholders, unused in this build — see
+/// <c>BarEvaluationOrchestrator</c>'s class doc comment.
 /// </summary>
 public static class PortfolioRiskGuard
 {
-    private const double RiskPerTradePct = 0.003;    // 0.30%
-    private const double MaxReservedRiskPct = 0.006; // 0.60%
-    private const double MetalBasketPct = 0.003;     // 0.30%
-    private const double UsdExposurePct = 0.0045;    // 0.45%
+    private const double RiskPerTradePct = 0.01;     // 1.00% — see class doc comment
+    // Revised from 0.006 (0.60%) — kept at the same 2x ratio to per-trade risk
+    // that the original spec used (0.60% / 0.30% = 2x), applied to the new 1.00%.
+    private const double MaxReservedRiskPct = 0.02;  // 2.00%
+    private const double MetalBasketPct = 0.003;     // 0.30% — unused (single-symbol build)
+    private const double UsdExposurePct = 0.0045;    // 0.45% — unused (single-symbol build)
 
     /// <summary>
     /// O.1 — Per-trade risk cap.
