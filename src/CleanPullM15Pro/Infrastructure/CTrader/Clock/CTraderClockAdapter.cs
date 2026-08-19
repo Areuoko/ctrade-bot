@@ -10,6 +10,15 @@ namespace CleanPullM15Pro.Infrastructure.CTrader.Clock;
 /// .NET 6+ resolves IANA ids ("Europe/London", "America/New_York") on Windows
 /// via ICU; if FindSystemTimeZoneById throws on your runtime, this falls back
 /// to the equivalent Windows time zone id.
+///
+/// SESSION REVISION (decision, 2026-08): entry windows widened from the spec
+/// section 3.2 original 3-hour windows (London 08:00–11:00, NY 08:30–11:30) to
+/// 4-hour windows (London 08:00–12:00, NY 08:30–12:30), matching
+/// <c>BacktestClockAdapter</c> so the backtest/Walk-Forward results and this live
+/// adapter test the same session behavior. This is a research parameter (spec
+/// section 29 lists "پنجره‌های معاملاتی" as پژوهشی, not ثابت منطقی) — document
+/// alongside OQ-P.6-1 in docs/open-questions.md and re-evaluate against
+/// Walk-Forward/Demo Forward Test results before treating it as final.
 /// </summary>
 public sealed class CTraderClockAdapter : IClockPort
 {
@@ -21,10 +30,12 @@ public sealed class CTraderClockAdapter : IClockPort
     private readonly TimeSpan _rolloverUtcTimeOfDay;
     private readonly TimeSpan _rolloverMargin = TimeSpan.FromMinutes(15);
 
+    // 4-Hour London Sniper Window: 08:00 to 12:00 London Local (revised from 11:00 — see class doc comment).
     private static readonly TimeSpan LondonOpenStart = new(8, 0, 0);
-    private static readonly TimeSpan LondonOpenEnd = new(11, 0, 0);
+    private static readonly TimeSpan LondonOpenEnd = new(12, 0, 0);
+    // 4-Hour New York Sniper Window: 08:30 to 12:30 NY Local (revised from 11:30 — see class doc comment).
     private static readonly TimeSpan NyMorningStart = new(8, 30, 0);
-    private static readonly TimeSpan NyMorningEnd = new(11, 30, 0);
+    private static readonly TimeSpan NyMorningEnd = new(12, 30, 0);
     private static readonly TimeSpan FridayCutoff = new(12, 0, 0);
     private static readonly TimeSpan FridayForceClose = new(15, 45, 0);
 
@@ -45,8 +56,8 @@ public sealed class CTraderClockAdapter : IClockPort
     public DateTime UtcNow => _robot.Server.TimeInUtc;
 
     /// <summary>
-    /// Rule B.2/B.3 — true when <paramref name="checkTimeUtc"/> is inside the London open
-    /// (08:00–11:00) or New York morning (08:30–11:30) local session windows.
+    /// Rule B.2/B.3 (revised) — true when <paramref name="checkTimeUtc"/> is inside the
+    /// London open (08:00–12:00) or New York morning (08:30–12:30) local session windows.
     /// </summary>
     /// <param name="checkTimeUtc">Time to evaluate.</param>
     /// <returns>True inside an allowed entry session; otherwise false.</returns>
