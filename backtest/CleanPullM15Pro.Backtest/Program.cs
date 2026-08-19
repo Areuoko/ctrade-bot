@@ -56,6 +56,21 @@ public static class Program
         PrintReport(baselineEngine, InitialEquity);
         Console.WriteLine();
 
+        // --- Diagnostics: per-condition breakdown at the spec-aligned baseline ---
+        // Runs independently of Run() above (recomputes over the same indicator arrays),
+        // so it's safe to call on the same engine instance. This tells us WHICH of the
+        // 9 Pullback / 4 Breakout conditions is actually blocking signals, rather than
+        // guessing from a bare "0 trades" result (spec section 25 — Ablation-style analysis).
+        Console.WriteLine("================================================================================");
+        Console.WriteLine(">>> DIAGNOSTICS: SPEC-ALIGNED BASELINE CONDITION BREAKDOWN");
+        Console.WriteLine("================================================================================");
+        var pullbackDiag = baselineEngine.RunPullbackDiagnostics();
+        pullbackDiag.Print();
+        Console.WriteLine();
+        var breakoutDiag = baselineEngine.RunBreakoutDiagnostics();
+        breakoutDiag.Print();
+        Console.WriteLine();
+
         // --- Run 2: 18-combination research grid (Pullback ADX x LowerBound x Breakout preset) ---
         var wf = new WalkForwardHarness(m15, h1, spreadModel, InitialEquity, RolloverHourUtc);
         var researchGrid = WalkForwardHarness.BuildResearchGrid18();
