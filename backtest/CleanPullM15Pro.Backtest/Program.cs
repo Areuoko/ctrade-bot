@@ -98,6 +98,8 @@ public static class Program
         if (trades.Count == 0)
         {
             Console.WriteLine("No trades completed.");
+            Console.WriteLine();
+            PrintRejectionBreakdown(engine);
             return;
         }
 
@@ -116,6 +118,8 @@ public static class Program
         Console.WriteLine($"Net P&L: {netPnL:F2} USD  Profit Factor: {profitFactor:F2}  Expectancy: {expectancyR:F3}R");
         Console.WriteLine();
 
+        PrintRejectionBreakdown(engine);
+
         Console.WriteLine("=== EQUITY / DRAWDOWN ===");
         double peak = initialEquity;
         double maxDrawdownPct = 0;
@@ -127,5 +131,35 @@ public static class Program
         }
         double finalEquity = engine.EquityCurve.Count > 0 ? engine.EquityCurve[^1].Equity : initialEquity;
         Console.WriteLine($"Initial: {initialEquity:F2}  Final: {finalEquity:F2}  Max Drawdown: {maxDrawdownPct:P2}");
+    }
+
+    /// <summary>
+    /// Prints the full rejection-reason histogram (BacktestLogAdapter.RejectionCounts),
+    /// sorted by frequency. This is the key diagnostic for a "0 trades" result: it shows
+    /// whether the block is happening upstream of signal evaluation (e.g. ReasonCode.KillSwitch
+    /// stuck active for the rest of the run, RejectOutsideWindow, RejectNewsCalendar,
+    /// RejectDailyLock/RejectWeeklyLock) rather than at the Pullback/Breakout condition
+    /// level covered by PullbackDiagnosticsReport/TrendContinuationDiagnosticsReport.
+    /// </summary>
+    private static void PrintRejectionBreakdown(ReplayEngine engine)
+    {
+        var counts = engine.Log.RejectionCounts;
+        int total = counts.Values.Sum();
+
+        Console.WriteLine("=== REJECTION REASON BREAKDOWN (full run) ===");
+        if (total == 0)
+        {
+            Console.WriteLine("No rejections recorded (every evaluated bar either submitted an order or was skipped pre-evaluation, e.g. warm-up/state-not-ready).");
+            Console.WriteLine();
+            return;
+        }
+
+        foreach (var (reason, count) in counts.OrderByDescending(kv => kv.Value))
+        {
+            double pct = 100.0 * count / total;
+            Console.WriteLine($"{reason,-28} {count,7} ({pct,5:F1}%)");
+        }
+        Console.WriteLine($"{"TOTAL",-28} {total,7}");
+        Console.WriteLine();
     }
 }
