@@ -47,29 +47,57 @@ public static class Program
         // WalkForwardHarness.CreateSpecAlignedBaseConfig doc comment for full rationale).
         var baselineConfig = WalkForwardHarness.CreateSpecAlignedBaseConfig();
 
+        // --- Diagnostics FIRST: per-condition breakdown at the spec-aligned baseline ---
+        // Run independently of Run() below (recomputes over the same indicator arrays,
+        // no shared mutable state), so it's safe to call before the full replay. This
+        // tells us WHICH of the 9 Pullback / 4 Breakout conditions is actually blocking
+        // signals, rather than guessing from a bare "0 trades" result (spec section 25
+        // — Ablation-style analysis) — and gives us the exact timestamps of the rare
+        // domain-valid + in-session candidates to trace through the real run below.
+        Console.WriteLine("================================================================================");
+        Console.WriteLine(">>> DIAGNOSTICS: SPEC-ALIGNED BASELINE CONDITION BREAKDOWN");
+        Console.WriteLine("================================================================================");
+        var diagEngine = new ReplayEngine(m15, h1, spreadModel, InitialEquity, RolloverHourUtc, baselineConfig);
+        var pullbackDiag = diagEngine.RunPullbackDiagnostics();
+        pullbackDiag.Print();
+        Console.WriteLine();
+        var breakoutDiag = diagEngine.RunBreakoutDiagnostics();
+        breakoutDiag.Print();
+        Console.WriteLine();
+
         // --- Run 1: Spec-aligned baseline sanity check (single fixed parameter set) ---
+        // Traces the exact bars diagnostics flagged as "domain-valid Pullback signal AND
+        // inside the entry session window" through the REAL orchestrator pipeline, so we
+        // see their true fate (submitted, or rejected — and by what, and why) instead of
+        // inferring it from aggregate counts. Only Pullback's list is traced (it was a
+        // handful of bars); Breakout's list can be long, so only its count is used.
         Console.WriteLine("================================================================================");
         Console.WriteLine(">>> 1. FULL REPLAY: SPEC-ALIGNED BASELINE (ADX=20, LB=0.35, RISK=1.00%/0.50%, TP=2.0R)");
         Console.WriteLine("================================================================================");
         var baselineEngine = new ReplayEngine(m15, h1, spreadModel, InitialEquity, RolloverHourUtc, baselineConfig);
+        baselineEngine.Log.TraceTimestamps = new System.Collections.Generic.HashSet<DateTime>(pullbackDiag.ZeroFailAndInSessionTimestamps);
         baselineEngine.Run();
         PrintReport(baselineEngine, InitialEquity);
         Console.WriteLine();
 
-        // --- Diagnostics: per-condition breakdown at the spec-aligned baseline ---
-        // Runs independently of Run() above (recomputes over the same indicator arrays),
-        // so it's safe to call on the same engine instance. This tells us WHICH of the
-        // 9 Pullback / 4 Breakout conditions is actually blocking signals, rather than
-        // guessing from a bare "0 trades" result (spec section 25 — Ablation-style analysis).
-        Console.WriteLine("================================================================================");
-        Console.WriteLine(">>> DIAGNOSTICS: SPEC-ALIGNED BASELINE CONDITION BREAKDOWN");
-        Console.WriteLine("================================================================================");
-        var pullbackDiag = baselineEngine.RunPullbackDiagnostics();
-        pullbackDiag.Print();
-        Console.WriteLine();
-        var breakoutDiag = baselineEngine.RunBreakoutDiagnostics();
-        breakoutDiag.Print();
-        Console.WriteLine();
+        if (pullbackDiag.ZeroFailAndInSessionTimestamps.Count > 0)
+        {
+            Console.WriteLine("=== TRACE: fate of the domain-valid + in-session Pullback candidate bars ===");
+            Console.WriteLine($"Traced {pullbackDiag.ZeroFailAndInSessionTimestamps.Count} candidate bar(s): " +
+                string.Join(", ", pullbackDiag.ZeroFailAndInSessionTimestamps.Select(t => t.ToString("yyyy-MM-dd HH:mm"))));
+            if (baselineEngine.Log.TraceLog.Count == 0)
+            {
+                Console.WriteLine("No LogDecision/LogRejection entries recorded for these exact bars — the orchestrator");
+                Console.WriteLine("never reached Evaluate() for them (e.g. still in Cooldown/OrderPending, or a daily/");
+                Console.WriteLine("weekly/KillSwitch lock skipped evaluation entirely that bar).");
+            }
+            else
+            {
+                foreach (var line in baselineEngine.Log.TraceLog)
+                    Console.WriteLine(line);
+            }
+            Console.WriteLine();
+        }
 
         // --- Run 2: 18-combination research grid (Pullback ADX x LowerBound x Breakout preset) ---
         var wf = new WalkForwardHarness(m15, h1, spreadModel, InitialEquity, RolloverHourUtc);

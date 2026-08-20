@@ -43,6 +43,16 @@ public sealed class PullbackDiagnosticsReport
     /// </summary>
     public int ZeroFailAndInSessionCount { get; set; }
 
+    /// <summary>
+    /// Timestamps (bar close, UTC) of the zero-fail bars that were ALSO inside the
+    /// entry session window — the exact candidate set counted by
+    /// <see cref="ZeroFailAndInSessionCount"/>. Populated externally by the caller
+    /// (see <c>ReplayEngine.RunPullbackDiagnostics</c>) so those specific bars can be
+    /// traced through the real orchestrator run via
+    /// <c>BacktestLogAdapter.TraceTimestamps</c>.
+    /// </summary>
+    public List<DateTime> ZeroFailAndInSessionTimestamps { get; } = new();
+
     public Dictionary<string, int> FailCounts { get; } = ConditionOrder.ToDictionary(k => k, _ => 0);
     public Dictionary<string, int> NearMissCounts { get; } = ConditionOrder.ToDictionary(k => k, _ => 0);
     public Dictionary<string, List<double>> NearMissShortfalls { get; } =

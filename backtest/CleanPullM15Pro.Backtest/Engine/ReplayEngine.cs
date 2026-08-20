@@ -217,6 +217,7 @@ public sealed class ReplayEngine
             _symbol.CurrentMidPrice = candle.Close;
             _symbol.CurrentSpreadPriceUnits = quality.CurrentSpread;
 
+            _log.CurrentBarTimeUtc = barCloseUtc;
             _orchestrator.Evaluate(h1Snapshot, m15Snapshot, quality, account, _symbol.Info, barCloseUtc);
         }
     }
@@ -286,7 +287,10 @@ public sealed class ReplayEngine
                 _config.PullbackRsiPriorSellThreshold);
 
             if (failCount == 0 && IsWithinStep5Gates(barCloseUtc))
+            {
                 zeroFailAndInSession++;
+                report.ZeroFailAndInSessionTimestamps.Add(barCloseUtc);
+            }
         }
 
         report.ZeroFailAndInSessionCount = zeroFailAndInSession;
@@ -354,7 +358,10 @@ public sealed class ReplayEngine
                 _config.BreakoutClvSellThreshold);
 
             if (failCount == 0 && IsWithinStep5Gates(barCloseUtc))
+            {
                 zeroFailAndInSession++;
+                report.ZeroFailAndInSessionTimestamps.Add(barCloseUtc);
+            }
         }
 
         report.ZeroFailAndInSessionCount = zeroFailAndInSession;
